@@ -77,7 +77,7 @@ export default function Sidebar() {
         <div className="p-3 sm:p-4 border-b-2 border-foreground flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <img
-              src="src/assets/logo-dhaharan.png"
+              src="https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/logo-dhaharan.png"
               alt="Logo Dhaharan"
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 border-foreground shadow-cartoon object-cover shrink-0"
             />

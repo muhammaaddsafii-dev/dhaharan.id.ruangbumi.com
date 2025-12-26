@@ -22,7 +22,7 @@ export function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <img
-              src="src/assets/logo-dhaharan.png"
+              src="https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/logo-dhaharan.png"
               alt="Logo"
               className="w-10 h-10 rounded-xl border-2 border-foreground shadow-cartoon-sm object-cover"
             />

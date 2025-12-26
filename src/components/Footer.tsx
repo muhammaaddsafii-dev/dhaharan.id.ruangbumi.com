@@ -75,7 +75,7 @@ export function Footer() {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <img
-                  src="src/assets/logo-dhaharan.png"
+                  src="https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/logo-dhaharan.png"
                   alt="Logo dhaharan.id"
                   className="w-12 h-12 rounded-xl border-2 border-foreground shadow-cartoon-lg object-cover"
                 />
