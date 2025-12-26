@@ -71,31 +71,31 @@ const pengurus = [
     id: 1,
     nama: "Lorem Ipsum",
     jabatan: "Ketua Komunitas",
-    foto: "src/assets/tim-1.jpg",
+    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-1.jpg"
   },
   {
     id: 2,
     nama: "Lorem Ipsum",
     jabatan: "Sekretaris",
-    foto: "src/assets/tim-2.jpg",
+    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-2.jpg"
   },
   {
     id: 3,
     nama: "Lorem Ipsum",
     jabatan: "Koordinator Lapangan",
-    foto: "src/assets/tim-3.jpg",
+    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-3.jpg",
   },
   {
     id: 4,
     nama: "Lorem Ipsum",
     jabatan: "Koordinator Lapangan",
-    foto: "src/assets/tim-4.jpg",
+    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-4.jpg",
   },
   {
     id: 5,
     nama: "Lorem Ipsum",
     jabatan: "Koordinator Lapangan",
-    foto: "src/assets/tim-5.jpg",
+    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-5.jpg",
   },
 ];
 
