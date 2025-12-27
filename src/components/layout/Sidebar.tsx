@@ -10,6 +10,7 @@ import {
   LogOut,
   DollarSign,
   Users,
+  ChefHat,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Calendar, label: "Kegiatan", path: "/activities" },
+  { icon: ChefHat, label: "Resep", path: "/manage-resep" },
   { icon: Wallet, label: "Cashflow", path: "/addcashflow" },
   { icon: Users, label: "Volunteer", path: "/volunteersview" },
   { icon: DollarSign, label: "Donasi", path: "/donationsview" },
@@ -98,7 +100,7 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation - Scrollable if needed */}
-        <nav className="flex-1 p-2 sm:p-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-2 sm:p-3 space-y-2 overflow-y-auto">
           {menuItems.map((item, index) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;

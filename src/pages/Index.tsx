@@ -111,11 +111,18 @@ export default function Index() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
+      {/* Hero Section with Background Image */}
       <section className="relative py-20 lg:py-32 overflow-hidden">
-        <div className="absolute top-10 left-10 w-32 h-32 bg-primary/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-accent/30 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary/50 rounded-full blur-3xl" />
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          {/* Background Image */}
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: "url('src/assets/hero-bg.jpg')",
+            }}
+          />
+        </div>
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
@@ -212,10 +219,10 @@ export default function Index() {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
                   <Link to={feature.link}>
-                    <Card className="h-full group cursor-pointer">
+                    <Card className="h-full group cursor-pointer hover:shadow-cartoon-lg transition-shadow">
                       <CardHeader>
                         <div
-                          className={`w-14 h-14 rounded-2xl ${feature.color} border-2 border-foreground shadow-cartoon-sm flex items-center justify-center mb-4`}
+                          className={`w-14 h-14 rounded-2xl ${feature.color} border-2 border-foreground shadow-cartoon-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
                         >
                           <Icon className="w-7 h-7" />
                         </div>
@@ -223,7 +230,7 @@ export default function Index() {
                         <CardDescription>{feature.description}</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <span className="inline-flex items-center gap-2 text-highlight font-fredoka font-semibold text-sm">
+                        <span className="inline-flex items-center gap-2 text-highlight font-fredoka font-semibold text-sm group-hover:gap-3 transition-all">
                           Selengkapnya <ArrowRight className="w-4 h-4" />
                         </span>
                       </CardContent>
@@ -264,12 +271,12 @@ export default function Index() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="overflow-hidden h-full">
+                <Card className="overflow-hidden h-full group hover:shadow-cartoon-lg transition-shadow">
                   <div className="aspect-video relative overflow-hidden">
                     <img
                       src={activity.image}
                       alt={activity.title}
-                      className="w-full h-full object-cover transition-transform duration-300"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                     />
                     <Badge
                       className="absolute top-3 left-3"
@@ -279,7 +286,9 @@ export default function Index() {
                     </Badge>
                   </div>
                   <CardHeader>
-                    <CardTitle className="text-lg">{activity.title}</CardTitle>
+                    <CardTitle className="text-lg line-clamp-2">
+                      {activity.title}
+                    </CardTitle>
                     <CardDescription className="flex flex-col gap-1">
                       <span className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" /> {activity.date}
@@ -297,10 +306,10 @@ export default function Index() {
       </section>
 
       {/* ⭐ STRUKTUR PENGURUS */}
-      <section className="py-24 bg-primary/30">
+      <section className="py-24 bg-gradient-to-br from-primary/20 via-accent/10 to-secondary/20 relative overflow-hidden">
         {/* Aksen Blur Background */}
-        <div className="absolute top-20 left-10 w-48 h-48 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-56 h-56 bg-accent/20 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-10 w-48 h-48 bg-primary/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-56 h-56 bg-accent/30 rounded-full blur-3xl" />
 
         <div className="container mx-auto px-4 text-center relative z-10">
           <Badge className="mb-4" variant="accent">
@@ -318,45 +327,59 @@ export default function Index() {
           <div className="relative w-full max-w-lg mx-auto mt-12 overflow-hidden">
             {/* Card Slide */}
             <div
-              className="flex transition-transform duration-700"
+              className="flex transition-transform duration-700 ease-in-out"
               style={{ transform: `translateX(-${current * 100}%)` }}
             >
               {pengurus.map((p) => (
-                <div key={p.id} className="min-w-full flex justify-center">
+                <div key={p.id} className="min-w-full flex justify-center px-4">
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
-                    className="bg-white/60 backdrop-blur-xl shadow-cartoon-lg border-2 border-foreground p-8 rounded-3xl w-[85%] flex flex-col items-center"
+                    className="bg-white/80 backdrop-blur-xl shadow-cartoon-lg border-2 border-foreground p-6 sm:p-8 rounded-3xl w-full max-w-sm flex flex-col items-center"
                   >
-                    <motion.img
-                      src={p.foto}
-                      className="w-44 h-44 rounded-full object-cover border-4 border-white shadow-md"
+                    <motion.div
+                      className="relative"
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.5 }}
-                    />
+                    >
+                      <img
+                        src={p.foto}
+                        alt={p.nama}
+                        className="w-36 h-36 sm:w-44 sm:h-44 rounded-full object-cover border-4 border-white shadow-xl"
+                      />
+                      <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-primary rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                        <Heart
+                          className="w-6 h-6 text-primary-foreground"
+                          fill="currentColor"
+                        />
+                      </div>
+                    </motion.div>
 
-                    <h3 className="mt-6 text-2xl font-semibold font-fredoka">
+                    <h3 className="mt-6 text-xl sm:text-2xl font-semibold font-fredoka">
                       {p.nama}
                     </h3>
-                    <p className="text-gray-600 font-nunito">{p.jabatan}</p>
+                    <Badge variant="secondary" className="mt-2">
+                      {p.jabatan}
+                    </Badge>
                   </motion.div>
                 </div>
               ))}
             </div>
 
             {/* Bullet Indicator */}
-            <div className="flex justify-center gap-3 mt-6">
+            <div className="flex justify-center gap-2 sm:gap-3 mt-8">
               {pengurus.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrent(idx)}
                   className={`transition-all rounded-full ${
                     current === idx
-                      ? "w-4 h-4 bg-orange-500 shadow-md scale-90"
-                      : "w-3 h-3 bg-gray-300"
+                      ? "w-8 h-3 bg-highlight shadow-md"
+                      : "w-3 h-3 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                   }`}
+                  aria-label={`Go to slide ${idx + 1}`}
                 />
               ))}
             </div>
@@ -373,25 +396,35 @@ export default function Index() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <Card className="bg-primary border-2 border-foreground shadow-cartoon-lg p-8 md:p-12 text-center">
-              <h2 className="font-fredoka text-3xl md:text-4xl font-bold mb-4">
-                Siap Berbagi Kebaikan?
-              </h2>
-              <p className="font-nunito text-primary-foreground/80 max-w-2xl mx-auto mb-8">
-                Bergabunglah bersama kami dalam membangun komunitas yang penuh
-                kepedulian dan semangat berbagi.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/donationsection">
-                  <Button size="xl" variant="secondary">
-                    Donasi Sekarang <ArrowRight className="w-5 h-5" />
-                  </Button>
-                </Link>
-                <Link to="/volunteersection">
-                  <Button size="xl" variant="outline">
-                    Jadi Volunteer
-                  </Button>
-                </Link>
+            <Card className="bg-primary border-2 border-foreground shadow-cartoon-lg p-8 md:p-12 text-center overflow-hidden relative">
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary-foreground/5 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/10 rounded-full blur-3xl" />
+
+              <div className="relative z-10">
+                <h2 className="font-fredoka text-3xl md:text-4xl font-bold mb-4">
+                  Siap Berbagi Kebaikan?
+                </h2>
+                <p className="font-nunito text-primary-foreground/80 max-w-2xl mx-auto mb-8">
+                  Bergabunglah bersama kami dalam membangun komunitas yang penuh
+                  kepedulian dan semangat berbagi.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link to="/donationsection">
+                    <Button size="xl" variant="secondary">
+                      Donasi Sekarang <ArrowRight className="w-5 h-5" />
+                    </Button>
+                  </Link>
+                  <Link to="/volunteersection">
+                    <Button
+                      size="xl"
+                      variant="outline"
+                      className="bg-white/10 backdrop-blur-sm hover:bg-white/20"
+                    >
+                      Jadi Volunteer
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </Card>
           </motion.div>

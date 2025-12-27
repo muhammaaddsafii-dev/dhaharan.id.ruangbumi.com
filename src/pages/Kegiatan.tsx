@@ -1,6 +1,15 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Calendar, MapPin, Clock, Filter, Search, Users } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  Filter,
+  Search,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Mock data
+// Mock data with multiple images
 const activities = [
   {
     id: 1,
@@ -31,19 +40,27 @@ const activities = [
     category: "Ramadhan",
     status: "upcoming",
     participants: 45,
-    image: "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400",
+    images: [
+      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
+      "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=600",
+      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
+    ],
   },
   {
     id: 2,
     title: "Santunan Anak Yatim",
-    description: "Pemberian santunan dan perlengkapan sekolah untuk anak yatim.",
+    description:
+      "Pemberian santunan dan perlengkapan sekolah untuk anak yatim.",
     date: "20 Februari 2024",
     time: "09:00 - 12:00 WIB",
     location: "Panti Asuhan Harapan",
     category: "Santunan",
     status: "completed",
     participants: 30,
-    image: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400",
+    images: [
+      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
+      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
+    ],
   },
   {
     id: 3,
@@ -55,7 +72,11 @@ const activities = [
     category: "Baksos",
     status: "completed",
     participants: 60,
-    image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=400",
+    images: [
+      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
+      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
+      "https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=600",
+    ],
   },
   {
     id: 4,
@@ -67,7 +88,10 @@ const activities = [
     category: "Pengajian",
     status: "upcoming",
     participants: 100,
-    image: "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=400",
+    images: [
+      "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=600",
+      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
+    ],
   },
   {
     id: 5,
@@ -79,7 +103,10 @@ const activities = [
     category: "Kesehatan",
     status: "upcoming",
     participants: 80,
-    image: "https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=400",
+    images: [
+      "https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=600",
+      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
+    ],
   },
   {
     id: 6,
@@ -91,9 +118,13 @@ const activities = [
     category: "Lingkungan",
     status: "completed",
     participants: 40,
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+    images: [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600",
+      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
+      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
+    ],
   },
-    {
+  {
     id: 7,
     title: "Bantuan Bencana",
     description: "Membantu korban bencana.",
@@ -103,7 +134,10 @@ const activities = [
     category: "Lingkungan",
     status: "upcoming",
     participants: 40,
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+    images: [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600",
+      "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=600",
+    ],
   },
 ];
 
@@ -117,6 +151,91 @@ const categories = [
   "Lingkungan",
 ];
 
+// Image Slider Component
+function ImageSlider({ images }: { images: string[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const nextImage = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  if (images.length === 1) {
+    return (
+      <img
+        src={images[0]}
+        alt="Activity"
+        className="w-full h-full object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full group">
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={currentIndex}
+          src={images[currentIndex]}
+          alt={`Slide ${currentIndex + 1}`}
+          className="w-full h-full object-cover"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        />
+      </AnimatePresence>
+
+      {/* Navigation Arrows */}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              prevImage();
+            }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border-2 border-foreground shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              nextImage();
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border-2 border-foreground shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </>
+      )}
+
+      {/* Dots Indicator */}
+      {images.length > 1 && (
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+          {images.map((_, index) => (
+            <button
+              key={index}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentIndex(index);
+              }}
+              className={`w-2 h-2 rounded-full transition-all ${
+                index === currentIndex
+                  ? "bg-white w-6"
+                  : "bg-white/50 hover:bg-white/75"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Kegiatan() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
@@ -125,7 +244,7 @@ export default function Kegiatan() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   // pagination
-  const itemsPerPage = 3;
+  const itemsPerPage = 6;
   const [currentPage, setCurrentPage] = useState(1);
 
   // FILTER LOGIC
@@ -181,13 +300,16 @@ export default function Kegiatan() {
 
         {/* FILTER SECTION */}
         <div className="mb-8 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex flex-col lg:flex-row gap-4 items-center">
             {/* CATEGORY */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
 
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[180px] h-10 rounded-md border-2 border-foreground shadow-cartoon-sm">
+              <Select
+                value={selectedCategory}
+                onValueChange={setSelectedCategory}
+              >
+                <SelectTrigger className="w-full lg:w-[180px] h-10 rounded-md border-2 border-foreground shadow-cartoon-sm">
                   <SelectValue placeholder="Kategori" />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,10 +337,11 @@ export default function Kegiatan() {
             </div>
 
             {/* STATUS */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full lg:w-auto">
               <Button
                 variant={statusFilter === "all" ? "default" : "outline"}
                 onClick={() => applyFilter("all")}
+                className="flex-1 lg:flex-none"
               >
                 Semua
               </Button>
@@ -226,6 +349,7 @@ export default function Kegiatan() {
               <Button
                 variant={statusFilter === "upcoming" ? "default" : "outline"}
                 onClick={() => applyFilter("upcoming")}
+                className="flex-1 lg:flex-none"
               >
                 Akan Datang
               </Button>
@@ -233,6 +357,7 @@ export default function Kegiatan() {
               <Button
                 variant={statusFilter === "completed" ? "default" : "outline"}
                 onClick={() => applyFilter("completed")}
+                className="flex-1 lg:flex-none"
               >
                 Selesai
               </Button>
@@ -243,7 +368,7 @@ export default function Kegiatan() {
         {/* LIST */}
         {paginated.length > 0 ? (
           <>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginated.map((activity, index) => (
                 <motion.div
                   key={activity.id}
@@ -253,13 +378,9 @@ export default function Kegiatan() {
                 >
                   <Card className="overflow-hidden h-full group">
                     <div className="aspect-video relative overflow-hidden">
-                      <img
-                        src={activity.image}
-                        alt={activity.title}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
+                      <ImageSlider images={activity.images} />
 
-                      <div className="absolute top-3 left-3 flex gap-2">
+                      <div className="absolute top-3 left-3 flex gap-2 z-10">
                         <Badge
                           variant={
                             activity.status === "upcoming"
@@ -274,6 +395,13 @@ export default function Kegiatan() {
 
                         <Badge variant="accent">{activity.category}</Badge>
                       </div>
+
+                      {/* Image Counter */}
+                      {activity.images.length > 1 && (
+                        <div className="absolute top-3 right-3 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-semibold z-10">
+                          {activity.images.length} foto
+                        </div>
+                      )}
                     </div>
 
                     <CardHeader>
@@ -287,22 +415,24 @@ export default function Kegiatan() {
 
                     <CardContent className="space-y-3">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        {activity.date}
+                        <Calendar className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{activity.date}</span>
                       </div>
 
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        {activity.time}
+                        <Clock className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{activity.time}</span>
                       </div>
 
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
-                        <span className="line-clamp-1">{activity.location}</span>
+                        <MapPin className="w-4 h-4 shrink-0" />
+                        <span className="line-clamp-1">
+                          {activity.location}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="w-4 h-4" />
+                        <Users className="w-4 h-4 shrink-0" />
                         {activity.participants} peserta
                       </div>
 
@@ -316,27 +446,33 @@ export default function Kegiatan() {
             </div>
 
             {/* PAGINATION */}
-            <div className="flex justify-center gap-3 mt-10">
-              <Button
-                disabled={currentPage === 1}
-                variant="outline"
-                onClick={() => setCurrentPage((p) => p - 1)}
-              >
-                Prev
-              </Button>
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 sm:gap-3 mt-10">
+                <Button
+                  disabled={currentPage === 1}
+                  variant="outline"
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                  size="sm"
+                >
+                  <ChevronLeft className="w-4 h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">Prev</span>
+                </Button>
 
-              <div className="px-4 py-2 border rounded-md">
-                {currentPage} / {totalPages}
+                <div className="px-3 sm:px-4 py-2 border-2 border-foreground rounded-lg shadow-cartoon-sm font-semibold text-sm">
+                  {currentPage} / {totalPages}
+                </div>
+
+                <Button
+                  disabled={currentPage === totalPages}
+                  variant="outline"
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  size="sm"
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="w-4 h-4 sm:ml-1" />
+                </Button>
               </div>
-
-              <Button
-                disabled={currentPage === totalPages}
-                variant="outline"
-                onClick={() => setCurrentPage((p) => p + 1)}
-              >
-                Next
-              </Button>
-            </div>
+            )}
           </>
         ) : (
           <motion.div

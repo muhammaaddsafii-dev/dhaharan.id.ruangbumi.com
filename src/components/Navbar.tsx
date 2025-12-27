@@ -1,12 +1,23 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Home, Calendar, Wallet, Map, User, Shield } from "lucide-react";
+import {
+  Menu,
+  X,
+  Home,
+  Calendar,
+  Wallet,
+  Map,
+  User,
+  Shield,
+  ChefHat,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { name: "Beranda", path: "/", icon: Home },
   { name: "Kegiatan", path: "/kegiatan", icon: Calendar },
+  { name: "Resep", path: "/resep", icon: ChefHat },
   { name: "Cashflow", path: "/cashflow", icon: Wallet },
   { name: "Peta", path: "/peta", icon: Map },
 ];
@@ -54,17 +65,11 @@ export function Navbar() {
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-2">
             <Link to="/login">
-              <Button variant="accent" size="sm">
+              <Button variant="accent" size="sm" className="gap-2">
                 <User className="w-4 h-4" />
                 Admin
               </Button>
             </Link>
-            {/* <Link to="/dashboard">
-              <Button variant="accent" size="sm">
-                <Shield className="w-4 h-4" />
-                Admin
-              </Button>
-            </Link> */}
           </div>
 
           {/* Mobile Menu Button */}
@@ -110,17 +115,14 @@ export function Navbar() {
               })}
               <div className="border-t-2 border-foreground/20 pt-4 mt-2 flex flex-col gap-2">
                 <Link to="/login" onClick={() => setIsOpen(false)}>
-                  <Button variant="accent" className="w-full justify-start gap-2">
+                  <Button
+                    variant="accent"
+                    className="w-full justify-start gap-2"
+                  >
                     <Shield className="w-4 h-4" />
                     Admin
                   </Button>
                 </Link>
-                {/* <Link to="/admin" onClick={() => setIsOpen(false)}>
-                  <Button variant="accent" className="w-full justify-start gap-2">
-                    <Shield className="w-4 h-4" />
-                    Admin
-                  </Button>
-                </Link> */}
               </div>
             </div>
           </motion.div>
