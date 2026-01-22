@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Calendar, Search } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -7,22 +7,120 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import ActivityCard from "@/components/activities/ActivityCard";
 import ActivityModal from "@/components/activities/ActivityModal";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { initialActivities } from "@/data/mockData";
 import { Activity, ModalMode } from "@/types";
 import { toast } from "@/hooks/use-toast";
+import { kegiatanAPI } from "@/services/api";
+import type { KegiatanAPI } from "@/types";
+
+// Helper function to convert API data to Activity format
+const convertAPIToActivity = (apiData: KegiatanAPI): Activity => {
+  // Get all photo URLs if available
+  const imageUrls = apiData.foto && apiData.foto.length > 0 
+    ? apiData.foto.map(foto => foto.file_path)
+    : [];
+  
+  // First image for backward compatibility
+  const imageUrl = imageUrls.length > 0 ? imageUrls[0] : "";
+
+  // Map status_kegiatan to status
+  let status: Activity["status"] = "upcoming";
+  if (apiData.status_kegiatan_detail) {
+    const statusName = apiData.status_kegiatan_detail.nama.toLowerCase();
+    if (statusName.includes("selesai") || statusName.includes("completed")) {
+      status = "completed";
+    } else if (statusName.includes("berlangsung") || statusName.includes("ongoing")) {
+      status = "ongoing";
+    }
+  }
+
+  // Extract location and coordinates from GeoJSON
+  let location = "";
+  let coordinates: [number, number] | undefined = undefined;
+  
+  if (apiData.lokasi) {
+    // Handle GeoJSON format
+    if (apiData.lokasi.coordinates && Array.isArray(apiData.lokasi.coordinates)) {
+      const [lng, lat] = apiData.lokasi.coordinates;
+      coordinates = [lat, lng]; // Convert to [lat, lng] for Leaflet
+      location = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    }
+  }
+
+  return {
+    id: apiData.id?.toString() || "",
+    title: apiData.nama,
+    description: apiData.deskripsi,
+    date: apiData.tanggal,
+    location: location,
+    participants: apiData.jumlah_peserta,
+    status: status,
+    image: imageUrl,
+    images: imageUrls, // Add all images
+    createdAt: apiData.created_at?.split("T")[0] || "",
+    coordinates: coordinates,
+    status_kegiatan_id: apiData.status_kegiatan, // Save original ID
+    jenis_kegiatan_id: apiData.jenis_kegiatan, // Save original ID
+  };
+};
 
 export default function Activities() {
-  const [activities, setActivities] = useLocalStorage<Activity[]>(
-    "activities",
-    initialActivities
-  );
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>("create");
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
     null
   );
+
+  // Fetch activities from API
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      const data = await kegiatanAPI.getAll();
+      
+      // Validate data is array
+      if (!Array.isArray(data)) {
+        console.error("API response is not an array:", data);
+        toast({
+          title: "Error",
+          description: "Format data tidak sesuai. Silakan periksa backend.",
+          variant: "destructive",
+        });
+        setActivities([]);
+        return;
+      }
+      
+      const convertedActivities = data.map(convertAPIToActivity);
+      setActivities(convertedActivities);
+    } catch (error: any) {
+      console.error("Error fetching activities:", error);
+      
+      // Check if it's a network error
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+        toast({
+          title: "Error Koneksi",
+          description: "Tidak dapat terhubung ke server. Pastikan backend sedang berjalan.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Gagal memuat data kegiatan. Silakan coba lagi.",
+          variant: "destructive",
+        });
+      }
+      
+      // Set empty array on error
+      setActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchActivities();
+  }, []);
 
   const filteredActivities = activities.filter(
     (a) =>
@@ -37,51 +135,92 @@ export default function Activities() {
     setIsModalOpen(true);
   };
 
-  const handleView = (activity: Activity) => {
+  const handleView = async (activity: Activity) => {
+    // Fetch fresh data from API
+    const freshData = await kegiatanAPI.getById(parseInt(activity.id));
+    const updatedActivity = convertAPIToActivity(freshData);
     setModalMode("view");
-    setSelectedActivity(activity);
+    setSelectedActivity(updatedActivity);
     setIsModalOpen(true);
   };
 
-  const handleEdit = (activity: Activity) => {
+  const handleEdit = async (activity: Activity) => {
+    // Fetch fresh data from API
+    const freshData = await kegiatanAPI.getById(parseInt(activity.id));
+    const updatedActivity = convertAPIToActivity(freshData);
     setModalMode("edit");
-    setSelectedActivity(activity);
+    setSelectedActivity(updatedActivity);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setActivities(activities.filter((a) => a.id !== id));
-    toast({
-      title: "Kegiatan Dihapus",
-      description: "Kegiatan berhasil dihapus dari daftar.",
-    });
-  };
-
-  const handleSave = (data: Omit<Activity, "id" | "createdAt">) => {
-    if (modalMode === "create") {
-      const newActivity: Activity = {
-        ...data,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setActivities([newActivity, ...activities]);
+  const handleDelete = async (id: string) => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      "Apakah Anda yakin ingin menghapus kegiatan ini? Semua foto yang terkait juga akan dihapus. Tindakan ini tidak dapat dibatalkan."
+    );
+    
+    if (!confirmed) {
+      return; // User cancelled
+    }
+    
+    try {
+      await kegiatanAPI.delete(parseInt(id));
+      setActivities(activities.filter((a) => a.id !== id));
       toast({
-        title: "Kegiatan Ditambahkan! 🎉",
-        description: "Kegiatan baru berhasil ditambahkan.",
+        title: "Kegiatan Dihapus",
+        description: "Kegiatan berhasil dihapus dari daftar.",
       });
-    } else if (modalMode === "edit" && selectedActivity) {
-      setActivities(
-        activities.map((a) =>
-          a.id === selectedActivity.id ? { ...a, ...data } : a
-        )
-      );
+    } catch (error) {
+      console.error("Error deleting activity:", error);
       toast({
-        title: "Kegiatan Diperbarui",
-        description: "Perubahan berhasil disimpan.",
+        title: "Error",
+        description: "Gagal menghapus kegiatan. Silakan coba lagi.",
+        variant: "destructive",
       });
     }
-    setIsModalOpen(false);
   };
+
+  const handleSave = async (data: Omit<Activity, "id" | "createdAt">) => {
+    try {
+      if (modalMode === "create") {
+        // Create new activity
+        toast({
+          title: "Kegiatan Ditambahkan! 🎉",
+          description: "Kegiatan baru berhasil ditambahkan.",
+        });
+      } else if (modalMode === "edit" && selectedActivity) {
+        // Update existing activity
+        toast({
+          title: "Kegiatan Diperbarui",
+          description: "Perubahan berhasil disimpan.",
+        });
+      }
+      
+      // Refresh activities list
+      await fetchActivities();
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error saving activity:", error);
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan kegiatan. Silakan coba lagi.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Memuat data kegiatan...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

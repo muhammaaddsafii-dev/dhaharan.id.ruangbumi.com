@@ -1,0 +1,134 @@
+import axios from 'axios';
+import { KegiatanAPI, FotoKegiatan, JenisKegiatan, StatusKegiatan } from '@/types';
+
+// Base URL untuk API - sesuaikan dengan backend Anda
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Helper untuk upload ke S3
+export const uploadToS3 = async (file: File): Promise<string> => {
+  try {
+    // Upload via backend endpoint
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const { data } = await api.post('/upload/s3/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    return data.url;
+  } catch (error) {
+    console.error('Error uploading to S3:', error);
+    throw new Error('Failed to upload image to S3');
+  }
+};
+
+// Kegiatan API
+export const kegiatanAPI = {
+  // Get all kegiatan
+  getAll: async (): Promise<KegiatanAPI[]> => {
+    try {
+      const { data } = await api.get('/kegiatan/');
+      
+      console.log('Raw API response:', data);
+      
+      if (data && typeof data === 'object') {
+        // Check if it's paginated response (has 'results' field)
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        
+        // Check if it's direct array
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+      
+      console.warn('Unexpected API response format:', data);
+      return [];
+    } catch (error: any) {
+      console.error('Error in kegiatanAPI.getAll:', error);
+      throw error;
+    }
+  },
+
+  // Get single kegiatan by ID
+  getById: async (id: number): Promise<KegiatanAPI> => {
+    const { data } = await api.get(`/kegiatan/${id}/`);
+    console.log('Raw API response for getById:', data);
+    return data;
+  },
+
+  // Create new kegiatan
+  create: async (kegiatan: Omit<KegiatanAPI, 'id'>): Promise<KegiatanAPI> => {
+    const { data } = await api.post('/kegiatan/', kegiatan);
+    return data;
+  },
+
+  // Update kegiatan
+  update: async (id: number, kegiatan: Partial<KegiatanAPI>): Promise<KegiatanAPI> => {
+    const { data } = await api.patch(`/kegiatan/${id}/`, kegiatan);
+    return data;
+  },
+
+  // Delete kegiatan
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/kegiatan/${id}/`);
+  },
+
+  // Replace all photos (delete all existing photos)
+  replaceAllPhotos: async (id: number): Promise<{ deleted_count: number; message: string }> => {
+    const { data } = await api.post(`/kegiatan/${id}/replace_all_photos/`, {});
+    return data;
+  },
+};
+
+// Foto Kegiatan API
+export const fotoKegiatanAPI = {
+  // Get all foto for a kegiatan
+  getByKegiatan: async (kegiatanId: number): Promise<FotoKegiatan[]> => {
+    const { data } = await api.get(`/foto-kegiatan/?kegiatan=${kegiatanId}`);
+    return data;
+  },
+
+  // Create new foto kegiatan
+  create: async (fotoData: FormData | Omit<FotoKegiatan, 'id'>): Promise<FotoKegiatan> => {
+    const config = fotoData instanceof FormData 
+      ? { headers: { 'Content-Type': 'multipart/form-data' } }
+      : {};
+    
+    const { data } = await api.post('/foto-kegiatan/', fotoData, config);
+    return data;
+  },
+
+  // Delete foto kegiatan
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/foto-kegiatan/${id}/`);
+  },
+};
+
+// Jenis Kegiatan API
+export const jenisKegiatanAPI = {
+  getAll: async (): Promise<JenisKegiatan[]> => {
+    const { data } = await api.get('/jenis-kegiatan/');
+    return data;
+  },
+};
+
+// Status Kegiatan API
+export const statusKegiatanAPI = {
+  getAll: async (): Promise<StatusKegiatan[]> => {
+    const { data } = await api.get('/status-kegiatan/');
+    return data;
+  },
+};
+
+export default api;
