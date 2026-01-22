@@ -11,8 +11,10 @@ export interface Activity {
   images?: string[]; // Add array of all images
   createdAt: string;
   coordinates?: [number, number]; // [lat, lng] for map display
-  status_kegiatan_id?: number; // Add ID from database
-  jenis_kegiatan_id?: number; // Add ID from database
+  status_kegiatan?: number; // Add ID from database
+  jenis_kegiatan?: number; // Add ID from database
+  status_kegiatan_detail?: StatusKegiatan; // Add detail from database
+  jenis_kegiatan_detail?: JenisKegiatan; // Add detail from database
 }
 
 // Types untuk API Backend

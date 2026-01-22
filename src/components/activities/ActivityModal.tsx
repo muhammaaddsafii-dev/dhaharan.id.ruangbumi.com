@@ -49,8 +49,8 @@ export default function ActivityModal({
   const [uploading, setUploading] = useState(false);
   const [jenisKegiatanList, setJenisKegiatanList] = useState<JenisKegiatan[]>([]);
   const [statusKegiatanList, setStatusKegiatanList] = useState<StatusKegiatan[]>([]);
-  const [selectedJenisKegiatan, setSelectedJenisKegiatan] = useState<number>(1);
-  const [selectedStatusKegiatan, setSelectedStatusKegiatan] = useState<number>(1);
+  const [selectedJenisKegiatan, setSelectedJenisKegiatan] = useState<number | string>("");
+  const [selectedStatusKegiatan, setSelectedStatusKegiatan] = useState<number | string>("");
   
   // Location picker state
   const [selectedCoordinates, setSelectedCoordinates] = useState<[number, number] | null>(null);
@@ -89,6 +89,14 @@ export default function ActivityModal({
         status: activity.status,
         image: activity.image || "",
       });
+      
+      // Set jenis kegiatan and status kegiatan from activity data
+      if (activity.jenis_kegiatan) {
+        setSelectedJenisKegiatan(activity.jenis_kegiatan);
+      }
+      if (activity.status_kegiatan) {
+        setSelectedStatusKegiatan(activity.status_kegiatan);
+      }
       
       // Reset images first to avoid showing old images
       setUploadedImages([]);
@@ -129,8 +137,15 @@ export default function ActivityModal({
       setUploadedImages([]);
       setSelectedCoordinates(null);
       setCurrentImageIndex(0);
+      // Set default values for new activity
+      if (jenisKegiatanList.length > 0) {
+        setSelectedJenisKegiatan(jenisKegiatanList[0].id);
+      }
+      if (statusKegiatanList.length > 0) {
+        setSelectedStatusKegiatan(statusKegiatanList[0].id);
+      }
     }
-  }, [activity, mode, isOpen]);
+  }, [activity, mode, isOpen, jenisKegiatanList, statusKegiatanList]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -190,23 +205,32 @@ export default function ActivityModal({
     setUploading(true);
 
     try {
-      // Map status to status_kegiatan ID
+      // Use selectedStatusKegiatan directly if it's already a number
+      // Otherwise try to map from formData.status
       let statusId = selectedStatusKegiatan;
-      if (statusKegiatanList.length > 0) {
-        const statusMapping: { [key: string]: string } = {
-          "upcoming": "akan datang",
-          "ongoing": "berlangsung", 
-          "completed": "selesai"
-        };
-        
-        const foundStatus = statusKegiatanList.find(s => 
-          s.nama.toLowerCase().includes(statusMapping[formData.status])
-        );
-        
-        if (foundStatus) {
-          statusId = foundStatus.id;
+      
+      // If selectedStatusKegiatan is empty string or not set, try to find from formData.status
+      if (!statusId || statusId === "") {
+        if (statusKegiatanList.length > 0) {
+          const statusMapping: { [key: string]: string } = {
+            "upcoming": "akan datang",
+            "ongoing": "berlangsung", 
+            "completed": "selesai"
+          };
+          
+          const foundStatus = statusKegiatanList.find(s => 
+            s.nama.toLowerCase().includes(statusMapping[formData.status])
+          );
+          
+          if (foundStatus) {
+            statusId = foundStatus.id;
+          }
         }
       }
+      
+      // Convert to number if it's still string
+      const finalStatusId = typeof statusId === 'string' ? parseInt(statusId) : statusId;
+      const finalJenisId = typeof selectedJenisKegiatan === 'string' ? parseInt(selectedJenisKegiatan) : selectedJenisKegiatan;
 
       // Use selected coordinates or default to Yogyakarta
       const lokasi: {
@@ -227,8 +251,8 @@ export default function ActivityModal({
           tanggal: formData.date,
           jumlah_peserta: formData.participants,
           lokasi: lokasi,
-          jenis_kegiatan: selectedJenisKegiatan,
-          status_kegiatan: statusId,
+          jenis_kegiatan: finalJenisId,
+          status_kegiatan: finalStatusId,
         });
 
         // Upload photos if any
@@ -252,8 +276,8 @@ export default function ActivityModal({
           tanggal: formData.date,
           jumlah_peserta: formData.participants,
           lokasi: lokasi,
-          jenis_kegiatan: selectedJenisKegiatan,
-          status_kegiatan: statusId,
+          jenis_kegiatan: finalJenisId,
+          status_kegiatan: finalStatusId,
         });
 
         // Only upload new photos if any, don't delete existing ones
@@ -397,6 +421,40 @@ export default function ActivityModal({
                             </p>
                           </div>
                         </div>
+
+                        {/* Jenis Kegiatan */}
+                        {activity?.jenis_kegiatan_detail && (
+                          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-secondary/50 border border-foreground/10">
+                            <div className="w-10 h-10 rounded-lg bg-highlight/20 border border-highlight/30 flex items-center justify-center shrink-0">
+                              <Sparkles className="w-5 h-5 text-highlight" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-muted-foreground mb-0.5">
+                                Jenis Kegiatan
+                              </p>
+                              <p className="font-semibold text-sm">
+                                {activity.jenis_kegiatan_detail.nama}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Status Kegiatan Detail */}
+                        {activity?.status_kegiatan_detail && (
+                          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-secondary/50 border border-foreground/10">
+                            <div className="w-10 h-10 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+                              <Calendar className="w-5 h-5 text-primary" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-muted-foreground mb-0.5">
+                                Status
+                              </p>
+                              <p className="font-semibold text-sm">
+                                {activity.status_kegiatan_detail.nama}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Location */}
@@ -543,6 +601,27 @@ export default function ActivityModal({
                         />
                       </div>
 
+                      {/* Jenis Kegiatan Dropdown */}
+                      <div>
+                        <label className="block text-sm font-semibold mb-2.5">
+                          Jenis Kegiatan{" "}
+                          <span className="text-destructive">*</span>
+                        </label>
+                        <select
+                          value={selectedJenisKegiatan}
+                          onChange={(e) => setSelectedJenisKegiatan(parseInt(e.target.value))}
+                          className="w-full h-11 px-3 border-2 border-input bg-background rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+                          required
+                        >
+                          <option value="">Pilih Jenis Kegiatan</option>
+                          {Array.isArray(jenisKegiatanList) && jenisKegiatanList.map((jenis) => (
+                            <option key={jenis.id} value={jenis.id}>
+                              {jenis.nama}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
                       {/* Date & Participants Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -615,34 +694,25 @@ export default function ActivityModal({
                         </div>
                       </div>
 
-                      {/* Status */}
+                      {/* Status Kegiatan Dropdown */}
                       <div>
                         <label className="block text-sm font-semibold mb-2.5">
-                          Status Kegiatan
+                          Status Kegiatan{" "}
+                          <span className="text-destructive">*</span>
                         </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {statuses.map((status) => (
-                            <Button
-                              key={status.value}
-                              type="button"
-                              variant={
-                                formData.status === status.value
-                                  ? "default"
-                                  : "outline"
-                              }
-                              size="sm"
-                              className="h-10 text-xs sm:text-sm"
-                              onClick={() =>
-                                setFormData({
-                                  ...formData,
-                                  status: status.value as Activity["status"],
-                                })
-                              }
-                            >
-                              {status.label}
-                            </Button>
+                        <select
+                          value={selectedStatusKegiatan}
+                          onChange={(e) => setSelectedStatusKegiatan(parseInt(e.target.value))}
+                          className="w-full h-11 px-3 border-2 border-input bg-background rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+                          required
+                        >
+                          <option value="">Pilih Status Kegiatan</option>
+                          {Array.isArray(statusKegiatanList) && statusKegiatanList.map((status) => (
+                            <option key={status.id} value={status.id}>
+                              {status.nama}
+                            </option>
                           ))}
-                        </div>
+                        </select>
                       </div>
 
                       {/* Upload Foto - Multiple */}

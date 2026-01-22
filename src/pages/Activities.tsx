@@ -58,8 +58,10 @@ const convertAPIToActivity = (apiData: KegiatanAPI): Activity => {
     images: imageUrls, // Add all images
     createdAt: apiData.created_at?.split("T")[0] || "",
     coordinates: coordinates,
-    status_kegiatan_id: apiData.status_kegiatan, // Save original ID
-    jenis_kegiatan_id: apiData.jenis_kegiatan, // Save original ID
+    status_kegiatan: apiData.status_kegiatan, // Save original ID (without _id suffix)
+    jenis_kegiatan: apiData.jenis_kegiatan, // Save original ID (without _id suffix)
+    status_kegiatan_detail: apiData.status_kegiatan_detail, // Save detail object
+    jenis_kegiatan_detail: apiData.jenis_kegiatan_detail, // Save detail object
   };
 };
 

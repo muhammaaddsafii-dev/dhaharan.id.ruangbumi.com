@@ -118,16 +118,58 @@ export const fotoKegiatanAPI = {
 // Jenis Kegiatan API
 export const jenisKegiatanAPI = {
   getAll: async (): Promise<JenisKegiatan[]> => {
-    const { data } = await api.get('/jenis-kegiatan/');
-    return data;
+    try {
+      const { data } = await api.get('/jenis-kegiatan/');
+      
+      console.log('Raw API response for jenisKegiatanAPI.getAll:', data);
+      
+      if (data && typeof data === 'object') {
+        // Check if it's paginated response (has 'results' field)
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        
+        // Check if it's direct array
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+      
+      console.warn('Unexpected jenisKegiatan API response format:', data);
+      return [];
+    } catch (error: any) {
+      console.error('Error in jenisKegiatanAPI.getAll:', error);
+      return []; // Return empty array instead of throwing
+    }
   },
 };
 
 // Status Kegiatan API
 export const statusKegiatanAPI = {
   getAll: async (): Promise<StatusKegiatan[]> => {
-    const { data } = await api.get('/status-kegiatan/');
-    return data;
+    try {
+      const { data } = await api.get('/status-kegiatan/');
+      
+      console.log('Raw API response for statusKegiatanAPI.getAll:', data);
+      
+      if (data && typeof data === 'object') {
+        // Check if it's paginated response (has 'results' field)
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        
+        // Check if it's direct array
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+      
+      console.warn('Unexpected statusKegiatan API response format:', data);
+      return [];
+    } catch (error: any) {
+      console.error('Error in statusKegiatanAPI.getAll:', error);
+      return []; // Return empty array instead of throwing
+    }
   },
 };
 
