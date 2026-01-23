@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar,
@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,129 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-// Mock data with multiple images
-const activities = [
-  {
-    id: 1,
-    title: "Bagi-bagi Takjil Ramadhan",
-    description: "Kegiatan pembagian takjil untuk masyarakat di area masjid.",
-    date: "15 Maret 2024",
-    time: "15:00 - 18:00 WIB",
-    location: "Masjid Al-Ikhlas, Jakarta",
-    category: "Ramadhan",
-    status: "upcoming",
-    participants: 45,
-    images: [
-      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
-      "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=600",
-      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
-    ],
-  },
-  {
-    id: 2,
-    title: "Santunan Anak Yatim",
-    description:
-      "Pemberian santunan dan perlengkapan sekolah untuk anak yatim.",
-    date: "20 Februari 2024",
-    time: "09:00 - 12:00 WIB",
-    location: "Panti Asuhan Harapan",
-    category: "Santunan",
-    status: "completed",
-    participants: 30,
-    images: [
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
-      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
-    ],
-  },
-  {
-    id: 3,
-    title: "Bakti Sosial Desa Binaan",
-    description: "Pembagian sembako dan pengobatan gratis.",
-    date: "10 Januari 2024",
-    time: "08:00 - 16:00 WIB",
-    location: "Desa Sukamaju, Bogor",
-    category: "Baksos",
-    status: "completed",
-    participants: 60,
-    images: [
-      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
-      "https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=600",
-    ],
-  },
-  {
-    id: 4,
-    title: "Pengajian Bulanan",
-    description: "Kajian rutin bulanan.",
-    date: "25 Maret 2024",
-    time: "19:00 - 21:00 WIB",
-    location: "Aula Dhaharan, Depok",
-    category: "Pengajian",
-    status: "upcoming",
-    participants: 100,
-    images: [
-      "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=600",
-      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
-    ],
-  },
-  {
-    id: 5,
-    title: "Donor Darah",
-    description: "Kegiatan donor darah bersama PMI.",
-    date: "5 April 2024",
-    time: "08:00 - 14:00 WIB",
-    location: "Gedung Serbaguna, Jakarta",
-    category: "Kesehatan",
-    status: "upcoming",
-    participants: 80,
-    images: [
-      "https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=600",
-      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
-    ],
-  },
-  {
-    id: 6,
-    title: "Bersih-Bersih Lingkungan",
-    description: "Gotong royong membersihkan lingkungan dan sungai.",
-    date: "15 Desember 2023",
-    time: "06:00 - 10:00 WIB",
-    location: "Kampung Melayu, Jakarta",
-    category: "Lingkungan",
-    status: "completed",
-    participants: 40,
-    images: [
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600",
-      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
-    ],
-  },
-  {
-    id: 7,
-    title: "Bantuan Bencana",
-    description: "Membantu korban bencana.",
-    date: "15 Desember 2025",
-    time: "06:00 - 10:00 WIB",
-    location: "Kampung Melayu, Jakarta",
-    category: "Lingkungan",
-    status: "upcoming",
-    participants: 40,
-    images: [
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600",
-      "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=600",
-    ],
-  },
-];
-
-const categories = [
-  "Semua",
-  "Ramadhan",
-  "Santunan",
-  "Baksos",
-  "Pengajian",
-  "Kesehatan",
-  "Lingkungan",
-];
+import { KegiatanAPI, JenisKegiatan } from "@/types";
+import { kegiatanAPI, jenisKegiatanAPI } from "@/services/api";
+import { toast } from "@/hooks/use-toast";
 
 // Image Slider Component
 function ImageSlider({ images }: { images: string[] }) {
@@ -162,6 +43,14 @@ function ImageSlider({ images }: { images: string[] }) {
   const prevImage = () => {
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
   };
+
+  if (images.length === 0) {
+    return (
+      <div className="w-full h-full bg-secondary flex items-center justify-center">
+        <Calendar className="w-12 h-12 text-muted-foreground opacity-50" />
+      </div>
+    );
+  }
 
   if (images.length === 1) {
     return (
@@ -237,27 +126,75 @@ function ImageSlider({ images }: { images: string[] }) {
 }
 
 export default function Kegiatan() {
+  const [activities, setActivities] = useState<KegiatanAPI[]>([]);
+  const [jenisKegiatan, setJenisKegiatan] = useState<JenisKegiatan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
-
-  // default tampilkan semua
   const [statusFilter, setStatusFilter] = useState("all");
-
+  
   // pagination
   const itemsPerPage = 6;
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Load data dari backend
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        const [kegiatanData, jenisData] = await Promise.all([
+          kegiatanAPI.getAll(),
+          jenisKegiatanAPI.getAll(),
+        ]);
+        
+        setActivities(kegiatanData);
+        setJenisKegiatan(jenisData);
+      } catch (error) {
+        console.error("Error loading kegiatan:", error);
+        toast({
+          title: "Error",
+          description: "Gagal memuat data kegiatan",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Buat list kategori dari jenis kegiatan
+  const categories = ["Semua", ...jenisKegiatan.map(j => j.nama)];
+
+  // Format tanggal ke format Indonesia
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', { 
+      day: 'numeric',
+      month: 'long', 
+      year: 'numeric' 
+    });
+  };
+
   // FILTER LOGIC
   const filteredActivities = activities.filter((activity) => {
     const matchesSearch =
-      activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      activity.description.toLowerCase().includes(searchQuery.toLowerCase());
+      activity.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      activity.deskripsi.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory =
-      selectedCategory === "Semua" || activity.category === selectedCategory;
+      selectedCategory === "Semua" || 
+      activity.jenis_kegiatan_detail?.nama === selectedCategory;
 
-    const matchesStatus =
-      statusFilter === "all" ? true : activity.status === statusFilter;
+    const matchesStatus = (() => {
+      if (statusFilter === "all") return true;
+      if (statusFilter === "upcoming") return activity.status_kegiatan === 1; // Akan Datang
+      if (statusFilter === "ongoing") return activity.status_kegiatan === 2; // Berlangsung
+      if (statusFilter === "completed") return activity.status_kegiatan === 3; // Selesai
+      return true;
+    })();
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -274,6 +211,27 @@ export default function Kegiatan() {
     setStatusFilter(status);
     setCurrentPage(1);
   };
+
+  // Helper untuk mendapatkan status badge
+  const getStatusBadge = (statusId: number) => {
+    if (statusId === 1) return { label: "Akan Datang", variant: "highlight" as const };
+    if (statusId === 2) return { label: "Berlangsung", variant: "accent" as const };
+    if (statusId === 3) return { label: "Selesai", variant: "secondary" as const };
+    return { label: "Unknown", variant: "default" as const };
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen py-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary border-2 border-foreground shadow-cartoon flex items-center justify-center animate-pulse">
+            <Calendar className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground">Memuat kegiatan...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-8">
@@ -307,7 +265,10 @@ export default function Kegiatan() {
 
               <Select
                 value={selectedCategory}
-                onValueChange={setSelectedCategory}
+                onValueChange={(value) => {
+                  setSelectedCategory(value);
+                  setCurrentPage(1);
+                }}
               >
                 <SelectTrigger className="w-full lg:w-[180px] h-10 rounded-md border-2 border-foreground shadow-cartoon-sm">
                   <SelectValue placeholder="Kategori" />
@@ -369,80 +330,81 @@ export default function Kegiatan() {
         {paginated.length > 0 ? (
           <>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginated.map((activity, index) => (
-                <motion.div
-                  key={activity.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="overflow-hidden h-full group">
-                    <div className="aspect-video relative overflow-hidden">
-                      <ImageSlider images={activity.images} />
+              {paginated.map((activity, index) => {
+                const statusBadge = getStatusBadge(activity.status_kegiatan);
+                const images = activity.foto?.map(f => f.file_path) || [];
 
-                      <div className="absolute top-3 left-3 flex gap-2 z-10">
-                        <Badge
-                          variant={
-                            activity.status === "upcoming"
-                              ? "highlight"
-                              : "secondary"
-                          }
-                        >
-                          {activity.status === "upcoming"
-                            ? "Akan Datang"
-                            : "Selesai"}
-                        </Badge>
+                return (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Card className="overflow-hidden h-full group">
+                      <div className="aspect-video relative overflow-hidden">
+                        <ImageSlider images={images} />
 
-                        <Badge variant="accent">{activity.category}</Badge>
-                      </div>
+                        <div className="absolute top-3 left-3 flex gap-2 z-10">
+                          <Badge variant={statusBadge.variant}>
+                            {statusBadge.label}
+                          </Badge>
 
-                      {/* Image Counter */}
-                      {activity.images.length > 1 && (
-                        <div className="absolute top-3 right-3 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-semibold z-10">
-                          {activity.images.length} foto
+                          {activity.jenis_kegiatan_detail && (
+                            <Badge variant="accent">
+                              {activity.jenis_kegiatan_detail.nama}
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    <CardHeader>
-                      <CardTitle className="text-lg line-clamp-2">
-                        {activity.title}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {activity.description}
-                      </CardDescription>
-                    </CardHeader>
-
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{activity.date}</span>
+                        {/* Image Counter */}
+                        {images.length > 1 && (
+                          <div className="absolute top-3 right-3 px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-semibold z-10">
+                            {images.length} foto
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{activity.time}</span>
-                      </div>
+                      <CardHeader>
+                        <CardTitle className="text-lg line-clamp-2">
+                          {activity.nama}
+                        </CardTitle>
+                        <CardDescription className="line-clamp-2">
+                          {activity.deskripsi}
+                        </CardDescription>
+                      </CardHeader>
 
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4 shrink-0" />
-                        <span className="line-clamp-1">
-                          {activity.location}
-                        </span>
-                      </div>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{formatDate(activity.tanggal)}</span>
+                        </div>
 
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="w-4 h-4 shrink-0" />
-                        {activity.participants} peserta
-                      </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="w-4 h-4 shrink-0" />
+                          <span className="line-clamp-1">
+                            {activity.lokasi?.coordinates 
+                              ? `${activity.lokasi.coordinates[1]}, ${activity.lokasi.coordinates[0]}`
+                              : "Lokasi tidak tersedia"
+                            }
+                          </span>
+                        </div>
 
-                      {activity.status === "upcoming" && (
-                        <Button className="w-full mt-4">Daftar Sekarang</Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Users className="w-4 h-4 shrink-0" />
+                          {activity.jumlah_peserta} peserta
+                        </div>
+
+                        {activity.status_kegiatan === 1 && (
+                          <Link to="/volunteersection">
+                            <Button className="w-full mt-4">Daftar Sekarang</Button>
+                          </Link>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
 
             {/* PAGINATION */}
