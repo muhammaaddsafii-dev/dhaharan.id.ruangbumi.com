@@ -1,6 +1,6 @@
 // Cashflow.tsx - FULLY RESPONSIVE VERSION
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Wallet,
@@ -10,9 +10,7 @@ import {
   Calendar,
   ArrowUpRight,
   ArrowDownRight,
-  PieChart,
   Download,
-  Filter,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,79 +30,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
-// ---------------- MOCK DATA ----------------
-const cashflowData = {
-  balance: 15750000,
-  totalIncome: 25000000,
-  totalExpense: 9250000,
-
-  monthlyData: [
-    { month: "Jan", income: 5000000, expense: 2000000 },
-    { month: "Feb", income: 4500000, expense: 1500000 },
-    { month: "Mar", income: 6000000, expense: 2500000 },
-    { month: "Apr", income: 5500000, expense: 1750000 },
-    { month: "Mei", income: 4000000, expense: 1500000 },
-  ],
-
-  transactions: [
-    {
-      id: 1,
-      type: "income",
-      description: "Donasi Anggota Bulan Maret",
-      amount: 5000000,
-      date: "15 Maret 2024",
-      category: "Donasi",
-    },
-    {
-      id: 2,
-      type: "expense",
-      description: "Pembelian Sembako Baksos",
-      amount: 2500000,
-      date: "12 Maret 2024",
-      category: "Kegiatan",
-    },
-    {
-      id: 3,
-      type: "income",
-      description: "Sponsor Kegiatan Ramadhan",
-      amount: 7500000,
-      date: "10 Maret 2024",
-      category: "Sponsor",
-    },
-    {
-      id: 4,
-      type: "expense",
-      description: "Santunan Anak Yatim",
-      amount: 3000000,
-      date: "5 Maret 2024",
-      category: "Santunan",
-    },
-    {
-      id: 5,
-      type: "income",
-      description: "Donasi Tambahan",
-      amount: 2000000,
-      date: "1 Maret 2024",
-      category: "Donasi",
-    },
-    {
-      id: 6,
-      type: "expense",
-      description: "Operasional",
-      amount: 900000,
-      date: "27 Feb 2024",
-      category: "Operasional",
-    },
-  ],
-};
-
-const expenseCategories = [
-  { name: "Kegiatan", amount: 2500000, color: "bg-accent" },
-  { name: "Santunan", amount: 3000000, color: "bg-highlight" },
-  { name: "Operasional", amount: 1500000, color: "bg-primary" },
-  { name: "Kesehatan", amount: 2250000, color: "bg-secondary" },
-];
+import { TransaksiAPI } from "@/types";
+import { transaksiAPI } from "@/services/api";
+import { toast } from "@/hooks/use-toast";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -116,19 +44,108 @@ const formatCurrency = (amount: number) => {
 
 // ---------------- COMPONENT ----------------
 export default function Cashflow() {
+  // State untuk data dari backend
+  const [transactions, setTransactions] = useState<TransaksiAPI[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [balance, setBalance] = useState(0);
+  
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  let filteredTransactions = cashflowData.transactions
-    .filter((t) => (filter === "all" ? true : t.type === filter))
-    .filter((t) => t.description.toLowerCase().includes(search.toLowerCase()));
+  // Load data dari backend
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [transaksiData, summary] = await Promise.all([
+          transaksiAPI.getAll(),
+          transaksiAPI.getSummary(),
+        ]);
+        
+        setTransactions(transaksiData);
+        setTotalIncome(Number(summary.total_pemasukan));
+        setTotalExpense(Number(summary.total_pengeluaran));
+        setBalance(Number(summary.saldo));
+      } catch (error) {
+        console.error("Error loading cashflow data:", error);
+        toast({
+          title: "Error",
+          description: "Gagal memuat data cashflow",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  filteredTransactions = filteredTransactions.sort((a, b) =>
-    sort === "asc" ? a.amount - b.amount : b.amount - a.amount
-  );
+    loadData();
+  }, []);
+
+  // Generate monthly data untuk chart dari transactions
+  const generateMonthlyData = () => {
+    const monthlyMap = new Map<string, { income: number; expense: number }>();
+    
+    transactions.forEach((t) => {
+      const date = new Date(t.tanggal);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = date.toLocaleDateString('id-ID', { month: 'short' });
+      
+      if (!monthlyMap.has(monthKey)) {
+        monthlyMap.set(monthKey, { income: 0, expense: 0 });
+      }
+      
+      const data = monthlyMap.get(monthKey)!;
+      const isIncome = t.tipe_transaksi_detail?.nama.toLowerCase() === 'pemasukan';
+      
+      if (isIncome) {
+        data.income += Number(t.jumlah);
+      } else {
+        data.expense += Number(t.jumlah);
+      }
+    });
+    
+    // Convert to array and sort by date
+    const sortedData = Array.from(monthlyMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .slice(-6) // Last 6 months
+      .map(([key, data]) => {
+        const [year, month] = key.split('-');
+        const date = new Date(Number(year), Number(month) - 1);
+        return {
+          month: date.toLocaleDateString('id-ID', { month: 'short' }),
+          income: data.income,
+          expense: data.expense,
+        };
+      });
+    
+    return sortedData;
+  };
+
+  const monthlyData = generateMonthlyData();
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', { 
+      day: 'numeric',
+      month: 'long', 
+      year: 'numeric' 
+    });
+  };
+
+  let filteredTransactions = transactions
+    .filter((t) => {
+      if (filter === "all") return true;
+      const isIncome = t.tipe_transaksi_detail?.nama.toLowerCase() === "pemasukan";
+      return filter === "income" ? isIncome : !isIncome;
+    })
+    .filter((t) => t.nama.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      // Sort by date (terbaru dulu)
+      return new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime();
+    });
 
   const totalPages = Math.max(
     1,
@@ -150,13 +167,13 @@ export default function Cashflow() {
 
     autoTable(doc, {
       startY: 60,
-      head: [["Tanggal", "Deskripsi", "Kategori", "Jenis", "Jumlah"]],
+      head: [["Tanggal", "Deskripsi", "Tipe", "Jenis", "Jumlah"]],
       body: filteredTransactions.map((t) => [
-        t.date,
-        t.description,
-        t.category,
-        t.type === "income" ? "Masuk" : "Keluar",
-        formatCurrency(t.amount),
+        formatDate(t.tanggal),
+        t.nama,
+        t.tipe_transaksi_detail?.nama || "-",
+        t.tipe_transaksi_detail?.nama.toLowerCase() === "pemasukan" ? "Masuk" : "Keluar",
+        formatCurrency(Number(t.jumlah)),
       ]),
       styles: { font: "helvetica", fontSize: 10 },
       headStyles: { fillColor: [30, 64, 175] },
@@ -164,6 +181,19 @@ export default function Cashflow() {
 
     doc.save("cashflow-transactions.pdf");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary border-2 border-foreground shadow-cartoon flex items-center justify-center animate-pulse">
+            <Wallet className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground">Memuat data cashflow...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-4 sm:py-8">
@@ -208,7 +238,7 @@ export default function Cashflow() {
                   </div>
                 </div>
                 <p className="font-fredoka text-xl sm:text-3xl font-bold text-primary">
-                  {formatCurrency(cashflowData.balance).replace(/\s/g, "")}
+                  {formatCurrency(balance).replace(/\s/g, "")}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                   Total dana tersedia
@@ -236,7 +266,7 @@ export default function Cashflow() {
                   </div>
                 </div>
                 <p className="font-fredoka text-xl sm:text-3xl font-bold text-accent">
-                  {formatCurrency(cashflowData.totalIncome).replace(/\s/g, "")}
+                  {formatCurrency(totalIncome).replace(/\s/g, "")}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                   Total dana masuk
@@ -264,7 +294,7 @@ export default function Cashflow() {
                   </div>
                 </div>
                 <p className="font-fredoka text-xl sm:text-3xl font-bold text-highlight">
-                  {formatCurrency(cashflowData.totalExpense).replace(/\s/g, "")}
+                  {formatCurrency(totalExpense).replace(/\s/g, "")}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                   Total dana keluar
@@ -297,27 +327,15 @@ export default function Cashflow() {
                       }}
                     />
 
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSort(sort === "asc" ? "desc" : "asc")}
-                        className="flex-1 sm:flex-none h-9 text-xs sm:text-sm"
-                      >
-                        <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                        {sort === "asc" ? "Terendah" : "Tertinggi"}
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="accent"
-                        onClick={exportPDF}
-                        className="flex-1 sm:flex-none h-9 text-xs sm:text-sm"
-                      >
-                        <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                        PDF
-                      </Button>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="accent"
+                      onClick={exportPDF}
+                      className="flex-1 sm:flex-none h-9 text-xs sm:text-sm"
+                    >
+                      <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      PDF
+                    </Button>
                   </div>
 
                   {/* Filter Buttons - Mobile Optimized */}
@@ -366,16 +384,16 @@ export default function Cashflow() {
                         +
                         {formatCurrency(
                           filteredTransactions
-                            .filter((t) => t.type === "income")
-                            .reduce((sum, t) => sum + t.amount, 0)
+                            .filter((t) => t.tipe_transaksi_detail?.nama.toLowerCase() === "pemasukan")
+                            .reduce((sum, t) => sum + Number(t.jumlah), 0)
                         ).replace(/\s/g, "")}
                       </Badge>
                       <Badge variant="highlight" className="text-xs px-2 py-1">
                         -
                         {formatCurrency(
                           filteredTransactions
-                            .filter((t) => t.type === "expense")
-                            .reduce((sum, t) => sum + t.amount, 0)
+                            .filter((t) => t.tipe_transaksi_detail?.nama.toLowerCase() === "pengeluaran")
+                            .reduce((sum, t) => sum + Number(t.jumlah), 0)
                         ).replace(/\s/g, "")}
                       </Badge>
                     </div>
@@ -391,7 +409,10 @@ export default function Cashflow() {
                     </p>
                   )}
 
-                  {paginatedTransactions.map((transaction, i) => (
+                  {paginatedTransactions.map((transaction, i) => {
+                    const isIncome = transaction.tipe_transaksi_detail?.nama.toLowerCase() === "pemasukan";
+                    
+                    return (
                     <motion.div
                       key={transaction.id}
                       initial={{ opacity: 0, x: -20 }}
@@ -402,12 +423,12 @@ export default function Cashflow() {
                       <div className="flex items-start sm:items-center gap-3">
                         <div
                           className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl flex items-center justify-center border-2 border-foreground shadow-cartoon-sm ${
-                            transaction.type === "income"
+                            isIncome
                               ? "bg-accent"
                               : "bg-highlight"
                           }`}
                         >
-                          {transaction.type === "income" ? (
+                          {isIncome ? (
                             <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6" />
                           ) : (
                             <ArrowDownRight className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -416,18 +437,18 @@ export default function Cashflow() {
 
                         <div className="flex-1 min-w-0">
                           <p className="font-fredoka font-semibold text-sm sm:text-base truncate">
-                            {transaction.description}
+                            {transaction.nama}
                           </p>
                           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              <span>{transaction.date}</span>
+                              <span>{formatDate(transaction.tanggal)}</span>
                             </div>
                             <Badge
                               variant="outline"
                               className="text-[10px] sm:text-xs px-1.5 py-0"
                             >
-                              {transaction.category}
+                              {transaction.tipe_transaksi_detail?.nama || "-"}
                             </Badge>
                           </div>
                         </div>
@@ -436,25 +457,26 @@ export default function Cashflow() {
                       <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-1">
                         <div
                           className={`font-fredoka font-bold text-base sm:text-lg ${
-                            transaction.type === "income"
+                            isIncome
                               ? "text-accent"
                               : "text-highlight"
                           }`}
                         >
-                          {transaction.type === "income" ? "+" : "-"}
-                          {formatCurrency(transaction.amount).replace(
+                          {isIncome ? "+" : "-"}
+                          {formatCurrency(Number(transaction.jumlah)).replace(
                             /\s/g,
                             ""
                           )}
                         </div>
                         <div className="text-[10px] sm:text-xs text-muted-foreground">
-                          {transaction.type === "income"
+                          {isIncome
                             ? "Pemasukan"
                             : "Pengeluaran"}
                         </div>
                       </div>
                     </motion.div>
-                  ))}
+                  );
+                  })}
                 </div>
 
                 {/* Pagination - Responsive */}
@@ -491,89 +513,59 @@ export default function Cashflow() {
             </Card>
           </motion.div>
 
-          {/* RIGHT – Charts + Breakdown - RESPONSIVE */}
+          {/* RIGHT – Charts - RESPONSIVE */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="flex flex-col gap-4 sm:gap-6"
           >
-            {/* Expense breakdown */}
-            <Card className="shadow-lg">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <PieChart className="w-4 h-4 sm:w-5 sm:h-5" /> Distribusi
-                  Pengeluaran
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
-                {expenseCategories.map((c) => {
-                  const percentage = Math.round(
-                    (c.amount / cashflowData.totalExpense) * 100
-                  );
-                  return (
-                    <div key={c.name}>
-                      <div className="flex justify-between text-xs sm:text-sm">
-                        <span>{c.name}</span>
-                        <span className="font-fredoka">{percentage}%</span>
-                      </div>
-
-                      <div className="h-2.5 sm:h-3 bg-secondary rounded-full overflow-hidden border border-foreground/20 mt-1.5 sm:mt-2">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ duration: 0.6 }}
-                          className={`h-full ${c.color}`}
-                        />
-                      </div>
-
-                      <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                        {formatCurrency(c.amount)}
-                      </p>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
             {/* Bar chart - Responsive */}
             <Card className="shadow-lg">
               <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="font-fredoka text-base sm:text-lg">
                   Grafik Cashflow Per Bulan
                 </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Menampilkan 6 bulan terakhir
+                </p>
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 pt-0">
-                <div className="w-full h-48 sm:h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={cashflowData.monthlyData}>
-                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                      <YAxis
-                        tickFormatter={(v) => (v / 1000000).toFixed(0) + "jt"}
-                        tick={{ fontSize: 11 }}
-                      />
-                      <Tooltip
-                        formatter={(v) => formatCurrency(v as number)}
-                        contentStyle={{ fontSize: "12px" }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: "12px" }} />
+                {monthlyData.length > 0 ? (
+                  <div className="w-full h-64 sm:h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyData}>
+                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                        <YAxis
+                          tickFormatter={(v) => (v / 1000000).toFixed(0) + "jt"}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <Tooltip
+                          formatter={(v) => formatCurrency(v as number)}
+                          contentStyle={{ fontSize: "12px" }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "12px" }} />
 
-                      <Bar
-                        dataKey="income"
-                        name="Pemasukan"
-                        fill="#86a9cf"
-                        radius={[6, 6, 0, 0]}
-                      />
-                      <Bar
-                        dataKey="expense"
-                        name="Pengeluaran"
-                        fill="#e37749"
-                        radius={[6, 6, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                        <Bar
+                          dataKey="income"
+                          name="Pemasukan"
+                          fill="#86a9cf"
+                          radius={[6, 6, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="expense"
+                          name="Pengeluaran"
+                          fill="#e37749"
+                          radius={[6, 6, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-sm text-muted-foreground">Belum ada data transaksi</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
