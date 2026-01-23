@@ -11,34 +11,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { KegiatanAPI } from "@/types";
+import { kegiatanAPI } from "@/services/api";
 
-// Mock data for recent activities
-const recentActivities = [
-  {
-    id: 1,
-    title: "Bagi-bagi Takjil Ramadhan",
-    date: "15 Maret 2024",
-    location: "Masjid Al-Ikhlas, Jakarta",
-    category: "Ramadhan",
-    image: "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400",
-  },
-  {
-    id: 2,
-    title: "Santunan Anak Yatim",
-    date: "20 Februari 2024",
-    location: "Panti Asuhan Harapan",
-    category: "Santunan",
-    image: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=400",
-  },
-  {
-    id: 3,
-    title: "Bakti Sosial Desa Binaan",
-    date: "10 Januari 2024",
-    location: "Desa Sukamaju, Bogor",
-    category: "Baksos",
-    image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=400",
-  },
-];
+
 
 const features = [
   {
@@ -101,6 +77,41 @@ const pengurus = [
 
 export default function Index() {
   const [current, setCurrent] = useState(0);
+  const [recentActivities, setRecentActivities] = useState<KegiatanAPI[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(true);
+
+  // Load 3 kegiatan terbaru
+  useEffect(() => {
+    const loadRecentActivities = async () => {
+      try {
+        setIsLoadingActivities(true);
+        const allKegiatan = await kegiatanAPI.getAll();
+        
+        // Sort by tanggal descending dan ambil 3 terbaru
+        const sorted = allKegiatan
+          .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+          .slice(0, 3);
+        
+        setRecentActivities(sorted);
+      } catch (error) {
+        console.error("Error loading recent activities:", error);
+      } finally {
+        setIsLoadingActivities(false);
+      }
+    };
+
+    loadRecentActivities();
+  }, []);
+
+  // Format tanggal
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', { 
+      day: 'numeric',
+      month: 'long', 
+      year: 'numeric' 
+    });
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -263,44 +274,72 @@ export default function Index() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {recentActivities.map((activity, index) => (
-              <motion.div
-                key={activity.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card className="overflow-hidden h-full group hover:shadow-cartoon-lg transition-shadow">
-                  <div className="aspect-video relative overflow-hidden">
-                    <img
-                      src={activity.image}
-                      alt={activity.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                    />
-                    <Badge
-                      className="absolute top-3 left-3"
-                      variant="highlight"
-                    >
-                      {activity.category}
-                    </Badge>
-                  </div>
+            {isLoadingActivities ? (
+              // Loading skeleton
+              Array.from({ length: 3 }).map((_, index) => (
+                <Card key={index} className="overflow-hidden h-full">
+                  <div className="aspect-video bg-secondary animate-pulse" />
                   <CardHeader>
-                    <CardTitle className="text-lg line-clamp-2">
-                      {activity.title}
-                    </CardTitle>
-                    <CardDescription className="flex flex-col gap-1">
-                      <span className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" /> {activity.date}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Map className="w-4 h-4" /> {activity.location}
-                      </span>
-                    </CardDescription>
+                    <div className="h-6 bg-secondary animate-pulse rounded mb-2" />
+                    <div className="h-4 bg-secondary animate-pulse rounded w-3/4" />
                   </CardHeader>
                 </Card>
-              </motion.div>
-            ))}
+              ))
+            ) : recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                >
+                  <Card className="overflow-hidden h-full group hover:shadow-cartoon-lg transition-shadow">
+                    <div className="aspect-video relative overflow-hidden">
+                      {activity.foto && activity.foto.length > 0 ? (
+                        <img
+                          src={activity.foto[0].file_path}
+                          alt={activity.nama}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                          onError={(e) => {
+                            e.currentTarget.src = "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-secondary flex items-center justify-center">
+                          <Calendar className="w-12 h-12 text-muted-foreground" />
+                        </div>
+                      )}
+                      <Badge
+                        className="absolute top-3 left-3"
+                        variant="highlight"
+                      >
+                        {activity.jenis_kegiatan_detail?.nama || "Kegiatan"}
+                      </Badge>
+                    </div>
+                    <CardHeader>
+                      <CardTitle className="text-lg line-clamp-2">
+                        {activity.nama}
+                      </CardTitle>
+                      <CardDescription className="flex flex-col gap-1">
+                        <span className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" /> {formatDate(activity.tanggal)}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <Map className="w-4 h-4" /> 
+                          Lat: {activity.lokasi.coordinates[1].toFixed(4)}, 
+                          Lng: {activity.lokasi.coordinates[0].toFixed(4)}
+                        </span>
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-12 text-muted-foreground">
+                Belum ada kegiatan
+              </div>
+            )}
           </div>
         </div>
       </section>
