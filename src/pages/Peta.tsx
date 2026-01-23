@@ -10,6 +10,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { KegiatanAPI } from "@/types";
+import { kegiatanAPI } from "@/services/api";
+import { toast } from "@/hooks/use-toast";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -19,6 +22,10 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "@changey/react-leaflet-markercluster";
 import L from "leaflet";
 
+interface ActivityLocation extends KegiatanAPI {
+  coordinates: { lat: number; lng: number };
+}
+
 // LEAFLET ICON FIX
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -27,98 +34,6 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
-
-// Dummy data
-const activityLocations = [
-  {
-    id: 1,
-    title: "Bagi-bagi Takjil Ramadhan",
-    description:
-      "Kegiatan pembagian takjil kepada masyarakat sekitar menjelang waktu berbuka puasa.",
-    date: "15 Maret 2024",
-    location: "Masjid Al-Ikhlas, Jakarta Selatan",
-    coordinates: { lat: -6.2615, lng: 106.8106 },
-    images: [
-      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
-      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
-    ],
-    category: "Ramadhan",
-  },
-  {
-    id: 2,
-    title: "Santunan Anak Yatim",
-    description:
-      "Program pemberian santunan dan paket kebutuhan kepada anak-anak yatim.",
-    date: "20 Februari 2024",
-    location: "Depok",
-    coordinates: { lat: -6.4025, lng: 106.7942 },
-    images: [
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
-    ],
-    category: "Santunan",
-  },
-  {
-    id: 3,
-    title: "Bersih-Bersih Lingkungan",
-    description:
-      "Kegiatan gotong royong membersihkan lingkungan RW dan area taman bermain.",
-    date: "5 Januari 2024",
-    location: "Tangerang Selatan",
-    coordinates: { lat: -6.2907, lng: 106.7227 },
-    images: [
-      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
-      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
-    ],
-    category: "Sosial",
-  },
-  {
-    id: 4,
-    title: "Pelatihan Literasi Digital",
-    description:
-      "Pengenalan keamanan digital dan penggunaan teknologi kepada warga.",
-    date: "10 April 2024",
-    location: "Kantor Kelurahan Cilandak",
-    coordinates: { lat: -6.2897, lng: 106.7997 },
-    images: [
-      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
-      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
-    ],
-    category: "Pendidikan",
-  },
-  {
-    id: 5,
-    title: "Pemeriksaan Kesehatan Gratis",
-    description:
-      "Pemeriksaan kesehatan meliputi tensi darah, gula darah, dan konsultasi dokter.",
-    date: "28 Mei 2024",
-    location: "Puskesmas Kemang",
-    coordinates: { lat: -6.2576, lng: 106.8201 },
-    images: [
-      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
-      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
-    ],
-    category: "Kesehatan",
-  },
-  {
-    id: 6,
-    title: "Kelas Mengaji Anak",
-    description:
-      "Pembinaan dan edukasi membaca Al-Qur'an untuk anak-anak usia 6–12 tahun.",
-    date: "1 Mei 2024",
-    location: "TPA Darussalam, Bekasi",
-    coordinates: { lat: -6.2476, lng: 107.0031 },
-    images: [
-      "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600",
-      "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=600",
-      "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600",
-    ],
-    category: "Keagamaan",
-  },
-];
 
 // FlyTo Component
 function FlyToLocation({ coords }: any) {
@@ -130,18 +45,75 @@ function FlyToLocation({ coords }: any) {
 }
 
 export default function Peta() {
-  const [selectedLocation, setSelectedLocation] = useState<any>(null);
+  const [activityLocations, setActivityLocations] = useState<ActivityLocation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedLocation, setSelectedLocation] = useState<ActivityLocation | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
+
+  // Load data dari backend
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const kegiatan = await kegiatanAPI.getAll();
+        
+        // Transform data: extract coordinates dari lokasi GeoJSON
+        const locationsWithCoords: ActivityLocation[] = kegiatan.map((k) => ({
+          ...k,
+          coordinates: {
+            lat: k.lokasi.coordinates[1], // GeoJSON format: [lng, lat]
+            lng: k.lokasi.coordinates[0],
+          },
+        }));
+        
+        setActivityLocations(locationsWithCoords);
+      } catch (error) {
+        console.error("Error loading kegiatan:", error);
+        toast({
+          title: "Error",
+          description: "Gagal memuat data kegiatan",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Format tanggal
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', { 
+      day: 'numeric',
+      month: 'long', 
+      year: 'numeric' 
+    });
+  };
 
   // AUTOPLAY SLIDER
   useEffect(() => {
-    if (!selectedLocation) return;
-    const total = selectedLocation.images.length;
+    if (!selectedLocation || !selectedLocation.foto || selectedLocation.foto.length === 0) return;
+    const total = selectedLocation.foto.length;
     const timer = setInterval(() => {
       setSlideIndex((prev) => (prev + 1) % total);
     }, 2800);
     return () => clearInterval(timer);
   }, [selectedLocation]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary border-2 border-foreground shadow-cartoon flex items-center justify-center animate-pulse">
+            <MapPin className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground">Memuat data peta...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-4 sm:py-8">
@@ -176,8 +148,8 @@ export default function Peta() {
             <Card className="overflow-hidden h-full">
               <CardContent className="p-0 h-full min-h-[400px] sm:min-h-[500px] lg:min-h-[700px]">
                 <MapContainer
-                  center={[-6.2088, 106.8456]}
-                  zoom={10}
+                  center={[-2.5489, 118.0149]} // Koordinat tengah Indonesia
+                  zoom={5} // Zoom level untuk melihat seluruh Indonesia
                   scrollWheelZoom={true}
                   className="w-full h-full map-container"
                   style={{ minHeight: "400px" }}
@@ -205,9 +177,9 @@ export default function Peta() {
                         }}
                       >
                         <Popup>
-                          <div className="font-semibold">{loc.title}</div>
+                          <div className="font-semibold">{loc.nama}</div>
                           <div className="text-xs text-muted-foreground">
-                            {loc.location}
+                            Lat: {loc.coordinates.lat.toFixed(4)}, Lng: {loc.coordinates.lng.toFixed(4)}
                           </div>
                         </Popup>
                       </Marker>
@@ -226,10 +198,10 @@ export default function Peta() {
           >
             {selectedLocation ? (
               <Card className="h-full">
-                <CardHeader className="pb-3 sm:pb-4 p-4 sm:p-6">
+                <CardHeader className="pb-0 p-4 sm:p-6">
                   <div className="flex items-start justify-between">
                     <Badge variant="highlight" className="text-xs">
-                      {selectedLocation.category}
+                      {selectedLocation.jenis_kegiatan_detail?.nama || "Kegiatan"}
                     </Badge>
 
                     <Button
@@ -243,68 +215,83 @@ export default function Peta() {
                   </div>
 
                   <CardTitle className="mt-2 text-base sm:text-lg">
-                    {selectedLocation.title}
+                    {selectedLocation.nama}
                   </CardTitle>
 
                   <CardDescription className="flex items-center gap-2 text-xs sm:text-sm">
                     <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />{" "}
-                    {selectedLocation.date}
+                    {formatDate(selectedLocation.tanggal)}
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
+                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
                   {/* DESCRIPTION */}
                   <p className="text-xs sm:text-sm text-muted-foreground font-nunito">
-                    {selectedLocation.description}
+                    {selectedLocation.deskripsi}
                   </p>
 
-                  {/* LOCATION */}
-                  <div className="flex items-start gap-2 text-xs sm:text-sm">
-                    <MapPin className="w-4 h-4 mt-0.5 text-highlight shrink-0" />
-                    <span>{selectedLocation.location}</span>
+                  {/* Jumlah Peserta */}
+                  <div className="flex items-center gap-2 text-xs sm:text-sm">
+                    <Badge variant="secondary">
+                      {selectedLocation.jumlah_peserta} Peserta
+                    </Badge>
+                    <Badge variant={selectedLocation.status_kegiatan === 1 ? "highlight" : selectedLocation.status_kegiatan === 2 ? "accent" : "secondary"}>
+                      {selectedLocation.status_kegiatan_detail?.nama || "Status"}
+                    </Badge>
                   </div>
 
                   {/* AUTOPLAY SLIDER */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold">
-                      <Camera className="w-4 h-4" /> Dokumentasi
-                    </div>
+                  {selectedLocation.foto && selectedLocation.foto.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold">
+                        <Camera className="w-4 h-4" /> Dokumentasi ({selectedLocation.foto.length})
+                      </div>
 
-                    <div className="relative w-full overflow-hidden rounded-xl">
-                      <motion.div
-                        className="flex"
-                        animate={{ x: `-${slideIndex * 100}%` }}
-                        transition={{ duration: 0.6, ease: "easeInOut" }}
-                      >
-                        {selectedLocation.images.map(
-                          (img: string, i: number) => (
-                            <img
-                              key={i}
-                              src={img}
-                              alt={`${selectedLocation.title} - ${i + 1}`}
-                              className="w-full h-48 sm:h-64 object-cover rounded-xl flex-shrink-0"
+                      <div className="relative w-full overflow-hidden rounded-xl">
+                        <motion.div
+                          className="flex"
+                          animate={{ x: `-${slideIndex * 100}%` }}
+                          transition={{ duration: 0.6, ease: "easeInOut" }}
+                        >
+                          {selectedLocation.foto.map(
+                            (foto, i: number) => (
+                              <img
+                                key={foto.id || i}
+                                src={foto.file_path}
+                                alt={`${selectedLocation.nama} - ${i + 1}`}
+                                className="w-full h-48 sm:h-64 object-cover rounded-xl flex-shrink-0"
+                                onError={(e) => {
+                                  e.currentTarget.src = "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600";
+                                }}
+                              />
+                            )
+                          )}
+                        </motion.div>
+
+                        {/* Bullet Indicator */}
+                        <div className="flex justify-center gap-2 sm:gap-3 mt-3">
+                          {selectedLocation.foto.map((_, idx: number) => (
+                            <button
+                              key={idx}
+                              onClick={() => setSlideIndex(idx)}
+                              className={`rounded-full transition-all ${
+                                slideIndex === idx
+                                  ? "w-3 h-3 sm:w-4 sm:h-4 bg-orange-500"
+                                  : "w-2 h-2 sm:w-3 sm:h-3 bg-gray-300"
+                              }`}
+                              aria-label={`Slide ${idx + 1}`}
                             />
-                          )
-                        )}
-                      </motion.div>
-
-                      {/* Bullet Indicator */}
-                      <div className="flex justify-center gap-2 sm:gap-3 mt-3">
-                        {selectedLocation.images.map((_: any, idx: number) => (
-                          <button
-                            key={idx}
-                            onClick={() => setSlideIndex(idx)}
-                            className={`rounded-full transition-all ${
-                              slideIndex === idx
-                                ? "w-3 h-3 sm:w-4 sm:h-4 bg-orange-500"
-                                : "w-2 h-2 sm:w-3 sm:h-3 bg-gray-300"
-                            }`}
-                            aria-label={`Slide ${idx + 1}`}
-                          />
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+                  
+                  {(!selectedLocation.foto || selectedLocation.foto.length === 0) && (
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                      Belum ada dokumentasi
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -335,10 +322,10 @@ export default function Peta() {
 
                             <div className="flex-1 min-w-0">
                               <h4 className="font-fredoka font-semibold text-xs sm:text-sm truncate">
-                                {loc.title}
+                                {loc.nama}
                               </h4>
                               <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
-                                {loc.location}
+                                Lat: {loc.coordinates.lat.toFixed(4)}, Lng: {loc.coordinates.lng.toFixed(4)}
                               </p>
 
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -346,10 +333,10 @@ export default function Peta() {
                                   variant="outline"
                                   className="text-[10px] sm:text-xs"
                                 >
-                                  {loc.category}
+                                  {loc.jenis_kegiatan_detail?.nama || "Kegiatan"}
                                 </Badge>
                                 <span className="text-[10px] sm:text-xs text-muted-foreground">
-                                  {loc.date}
+                                  {formatDate(loc.tanggal)}
                                 </span>
                               </div>
                             </div>
