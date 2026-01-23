@@ -173,4 +173,89 @@ export const statusKegiatanAPI = {
   },
 };
 
+// Tipe Transaksi API
+export const tipeTransaksiAPI = {
+  getAll: async () => {
+    try {
+      const { data } = await api.get('/tipe-transaksi/');
+      
+      if (data && typeof data === 'object') {
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+      
+      return [];
+    } catch (error: any) {
+      console.error('Error in tipeTransaksiAPI.getAll:', error);
+      return [];
+    }
+  },
+};
+
+// Transaksi API
+export const transaksiAPI = {
+  // Get all transaksi
+  getAll: async () => {
+    try {
+      const { data } = await api.get('/transaksi/');
+      
+      if (data && typeof data === 'object') {
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+      
+      return [];
+    } catch (error: any) {
+      console.error('Error in transaksiAPI.getAll:', error);
+      throw error;
+    }
+  },
+
+  // Get single transaksi by ID
+  getById: async (id: number) => {
+    const { data } = await api.get(`/transaksi/${id}/`);
+    return data;
+  },
+
+  // Create new transaksi
+  create: async (transaksi: any) => {
+    const { data } = await api.post('/transaksi/', transaksi);
+    return data;
+  },
+
+  // Update transaksi
+  update: async (id: number, transaksi: any) => {
+    const { data } = await api.patch(`/transaksi/${id}/`, transaksi);
+    return data;
+  },
+
+  // Delete transaksi
+  delete: async (id: number) => {
+    await api.delete(`/transaksi/${id}/`);
+  },
+
+  // Get summary
+  getSummary: async () => {
+    try {
+      const { data } = await api.get('/transaksi/summary/');
+      return data;
+    } catch (error: any) {
+      console.error('Error in transaksiAPI.getSummary:', error);
+      return {
+        total_pemasukan: 0,
+        total_pengeluaran: 0,
+        saldo: 0
+      };
+    }
+  },
+};
+
 export default api;

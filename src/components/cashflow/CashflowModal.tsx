@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, TrendingUp, TrendingDown, Tag, Calendar } from "lucide-react";
+import { X, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,14 +16,6 @@ interface CashflowModalProps {
   onSave: (item: Omit<CashflowItem, "id" | "createdAt">) => void;
 }
 
-const categories = [
-  "Donasi",
-  "Operasional",
-  "Transport",
-  "Perlengkapan",
-  "Lainnya",
-];
-
 export default function CashflowModal({
   isOpen,
   mode,
@@ -36,7 +28,6 @@ export default function CashflowModal({
     description: "",
     amount: 0,
     type: "income" as CashflowItem["type"],
-    category: "Donasi",
     date: "",
   });
 
@@ -47,7 +38,6 @@ export default function CashflowModal({
         description: item.description,
         amount: item.amount,
         type: item.type,
-        category: item.category,
         date: item.date,
       });
     } else {
@@ -56,7 +46,6 @@ export default function CashflowModal({
         description: "",
         amount: 0,
         type: "income",
-        category: "Donasi",
         date: new Date().toISOString().split("T")[0],
       });
     }
@@ -190,17 +179,6 @@ export default function CashflowModal({
                     {/* Info Grid */}
                     <div className="space-y-3 pt-4 border-t-2 border-foreground/10">
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-foreground/10">
-                        <Tag className="w-5 h-5 text-primary shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-xs text-muted-foreground mb-0.5">
-                            Kategori
-                          </p>
-                          <p className="font-semibold text-sm">
-                            {formData.category}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-foreground/10">
                         <Calendar className="w-5 h-5 text-accent shrink-0" />
                         <div className="flex-1">
                           <p className="text-xs text-muted-foreground mb-0.5">
@@ -324,33 +302,6 @@ export default function CashflowModal({
                             className="h-11"
                             required
                           />
-                        </div>
-                      </div>
-
-                      {/* Category */}
-                      <div>
-                        <label className="block text-sm font-semibold mb-2.5">
-                          Kategori
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {categories.map((cat) => (
-                            <Button
-                              key={cat}
-                              type="button"
-                              variant={
-                                formData.category === cat
-                                  ? "default"
-                                  : "outline"
-                              }
-                              size="sm"
-                              className="h-9 px-4"
-                              onClick={() =>
-                                setFormData({ ...formData, category: cat })
-                              }
-                            >
-                              {cat}
-                            </Button>
-                          ))}
                         </div>
                       </div>
                     </div>

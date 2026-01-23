@@ -63,12 +63,6 @@ export default function CashflowCard({
               </div>
 
               <div className="flex items-center gap-1.5 mb-1.5">
-                <Badge
-                  variant="outline"
-                  className="text-[10px] px-1.5 py-0 h-5"
-                >
-                  {item.category}
-                </Badge>
                 <span className="text-[10px] text-muted-foreground">
                   {formatDate(item.date)}
                 </span>
@@ -130,7 +124,6 @@ export default function CashflowCard({
                   <Badge variant={isIncome ? "accent" : "highlight"}>
                     {isIncome ? "Pemasukan" : "Pengeluaran"}
                   </Badge>
-                  <Badge variant="outline">{item.category}</Badge>
                 </div>
                 <h3 className="font-fredoka font-semibold text-lg mb-1 truncate">
                   {item.title}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Wallet, Search, TrendingUp, TrendingDown } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -7,17 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import CashflowCard from "@/components/cashflow/CashflowCard";
 import CashflowModal from "@/components/cashflow/CashflowModal";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { initialCashflow } from "@/data/mockData";
-import { CashflowItem, ModalMode } from "@/types";
+import { CashflowItem, ModalMode, TransaksiAPI, TipeTransaksi } from "@/types";
 import { formatCurrency } from "@/utils/formatters";
 import { toast } from "@/hooks/use-toast";
+import { transaksiAPI, tipeTransaksiAPI } from "@/services/api";
 
 export default function Cashflow() {
-  const [cashflow, setCashflow] = useLocalStorage<CashflowItem[]>(
-    "cashflow",
-    initialCashflow
-  );
+  const [cashflow, setCashflow] = useState<CashflowItem[]>([]);
+  const [tipeTransaksi, setTipeTransaksi] = useState<TipeTransaksi[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "income" | "expense">(
     "all"
@@ -25,23 +22,85 @@ export default function Cashflow() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>("create");
   const [selectedItem, setSelectedItem] = useState<CashflowItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [balance, setBalance] = useState(0);
+
+  // Fungsi untuk mengkonversi TransaksiAPI ke CashflowItem
+  const convertToCashflowItem = (transaksi: TransaksiAPI): CashflowItem => {
+    const tipeNama = transaksi.tipe_transaksi_detail?.nama || "";
+    const type = tipeNama.toLowerCase() === "pemasukan" ? "income" : "expense";
+    
+    return {
+      id: transaksi.id?.toString() || "",
+      title: transaksi.nama,
+      description: transaksi.deskripsi,
+      amount: Number(transaksi.jumlah),
+      type: type,
+      date: transaksi.tanggal,
+      createdAt: transaksi.created_at || transaksi.tanggal,
+    };
+  };
+
+  // Fungsi untuk mengkonversi CashflowItem ke TransaksiAPI
+  const convertToTransaksiAPI = (item: Omit<CashflowItem, "id" | "createdAt">): Omit<TransaksiAPI, "id"> => {
+    // Cari tipe transaksi berdasarkan type
+    const tipeNama = item.type === "income" ? "Pemasukan" : "Pengeluaran";
+    const tipe = tipeTransaksi.find(t => t.nama === tipeNama);
+    
+    return {
+      nama: item.title,
+      deskripsi: item.description,
+      jumlah: item.amount,
+      tanggal: item.date,
+      tipe_transaksi: tipe?.id || 1, // default ke 1 jika tidak ditemukan
+    };
+  };
+
+  // Load data awal
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Load tipe transaksi terlebih dahulu
+        const tipeData = await tipeTransaksiAPI.getAll();
+        setTipeTransaksi(tipeData);
+        
+        // Load transaksi
+        const transaksiData = await transaksiAPI.getAll();
+        const cashflowData = transaksiData.map(convertToCashflowItem);
+        setCashflow(cashflowData);
+        
+        // Load summary
+        const summary = await transaksiAPI.getSummary();
+        setTotalIncome(Number(summary.total_pemasukan));
+        setTotalExpense(Number(summary.total_pengeluaran));
+        setBalance(Number(summary.saldo));
+        
+      } catch (error) {
+        console.error("Error loading cashflow data:", error);
+        toast({
+          title: "Error",
+          description: "Gagal memuat data transaksi",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const filteredCashflow = cashflow.filter((c) => {
     const matchesSearch =
       c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.category.toLowerCase().includes(searchQuery.toLowerCase());
+      c.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === "all" || c.type === filterType;
     return matchesSearch && matchesType;
   });
-
-  const totalIncome = cashflow
-    .filter((c) => c.type === "income")
-    .reduce((sum, c) => sum + c.amount, 0);
-  const totalExpense = cashflow
-    .filter((c) => c.type === "expense")
-    .reduce((sum, c) => sum + c.amount, 0);
-  const balance = totalIncome - totalExpense;
 
   const handleCreate = () => {
     setModalMode("create");
@@ -61,37 +120,92 @@ export default function Cashflow() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setCashflow(cashflow.filter((c) => c.id !== id));
-    toast({
-      title: "Transaksi Dihapus",
-      description: "Transaksi berhasil dihapus dari daftar.",
-    });
-  };
-
-  const handleSave = (data: Omit<CashflowItem, "id" | "createdAt">) => {
-    if (modalMode === "create") {
-      const newItem: CashflowItem = {
-        ...data,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setCashflow([newItem, ...cashflow]);
+  const handleDelete = async (id: string) => {
+    try {
+      await transaksiAPI.delete(Number(id));
+      
+      // Update local state
+      setCashflow(cashflow.filter((c) => c.id !== id));
+      
+      // Reload summary
+      const summary = await transaksiAPI.getSummary();
+      setTotalIncome(Number(summary.total_pemasukan));
+      setTotalExpense(Number(summary.total_pengeluaran));
+      setBalance(Number(summary.saldo));
+      
       toast({
-        title: "Transaksi Ditambahkan! 💰",
-        description: "Transaksi baru berhasil ditambahkan.",
+        title: "Transaksi Dihapus",
+        description: "Transaksi berhasil dihapus dari daftar.",
       });
-    } else if (modalMode === "edit" && selectedItem) {
-      setCashflow(
-        cashflow.map((c) => (c.id === selectedItem.id ? { ...c, ...data } : c))
-      );
+    } catch (error) {
+      console.error("Error deleting transaksi:", error);
       toast({
-        title: "Transaksi Diperbarui",
-        description: "Perubahan berhasil disimpan.",
+        title: "Error",
+        description: "Gagal menghapus transaksi",
+        variant: "destructive",
       });
     }
-    setIsModalOpen(false);
   };
+
+  const handleSave = async (data: Omit<CashflowItem, "id" | "createdAt">) => {
+    try {
+      if (modalMode === "create") {
+        const transaksiData = convertToTransaksiAPI(data);
+        const newTransaksi = await transaksiAPI.create(transaksiData);
+        const newItem = convertToCashflowItem(newTransaksi);
+        
+        setCashflow([newItem, ...cashflow]);
+        
+        toast({
+          title: "Transaksi Ditambahkan! 💰",
+          description: "Transaksi baru berhasil ditambahkan.",
+        });
+      } else if (modalMode === "edit" && selectedItem) {
+        const transaksiData = convertToTransaksiAPI(data);
+        const updatedTransaksi = await transaksiAPI.update(Number(selectedItem.id), transaksiData);
+        const updatedItem = convertToCashflowItem(updatedTransaksi);
+        
+        setCashflow(
+          cashflow.map((c) => (c.id === selectedItem.id ? updatedItem : c))
+        );
+        
+        toast({
+          title: "Transaksi Diperbarui",
+          description: "Perubahan berhasil disimpan.",
+        });
+      }
+      
+      // Reload summary
+      const summary = await transaksiAPI.getSummary();
+      setTotalIncome(Number(summary.total_pemasukan));
+      setTotalExpense(Number(summary.total_pengeluaran));
+      setBalance(Number(summary.saldo));
+      
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error saving transaksi:", error);
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan transaksi",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary border-2 border-foreground shadow-cartoon flex items-center justify-center animate-pulse">
+              <Wallet className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground">Memuat data transaksi...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

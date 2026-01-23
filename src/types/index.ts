@@ -63,9 +63,28 @@ export interface CashflowItem {
   description: string;
   amount: number;
   type: "income" | "expense";
-  category: string;
   date: string;
   createdAt: string;
+}
+
+// Types untuk Transaksi API
+export interface TipeTransaksi {
+  id: number;
+  nama: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TransaksiAPI {
+  id?: number;
+  nama: string;
+  tipe_transaksi: number;
+  tipe_transaksi_detail?: TipeTransaksi;
+  deskripsi: string;
+  jumlah: number;
+  tanggal: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Modal Mode
