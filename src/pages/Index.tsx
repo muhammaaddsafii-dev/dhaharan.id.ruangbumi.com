@@ -183,7 +183,7 @@ export default function Index() {
                   Lihat Kegiatan <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
-              <Link to="/donationsection">
+              <Link to="/volunteersection">
                 <Button size="xl" variant="outline">
                   Gabung Sekarang
                 </Button>
@@ -410,11 +410,6 @@ export default function Index() {
                   kepedulian dan semangat berbagi.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link to="/donationsection">
-                    <Button size="xl" variant="secondary">
-                      Donasi Sekarang <ArrowRight className="w-5 h-5" />
-                    </Button>
-                  </Link>
                   <Link to="/volunteersection">
                     <Button
                       size="xl"

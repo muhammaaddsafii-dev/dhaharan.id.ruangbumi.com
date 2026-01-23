@@ -22,7 +22,7 @@ const menuItems = [
   { icon: ChefHat, label: "Resep", path: "/manage-resep" },
   { icon: Wallet, label: "Cashflow", path: "/addcashflow" },
   { icon: Users, label: "Volunteer", path: "/volunteersview" },
-  { icon: DollarSign, label: "Donasi", path: "/donationsview" },
+  // { icon: DollarSign, label: "Donasi", path: "/donationsview" },
   { icon: Settings, label: "Pengaturan", path: "/settings" },
 ];
 
