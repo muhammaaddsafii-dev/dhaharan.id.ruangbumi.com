@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -12,41 +13,69 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { initialActivities, initialCashflow } from "@/data/mockData";
 import { formatCurrency, formatShortDate } from "@/utils/formatters";
-import { Activity, CashflowItem } from "@/types";
+import { KegiatanAPI, TransaksiAPI } from "@/types";
+import { kegiatanAPI, transaksiAPI } from "@/services/api";
+import { toast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
-  const [activities] = useLocalStorage<Activity[]>(
-    "activities",
-    initialActivities
-  );
-  const [cashflow] = useLocalStorage<CashflowItem[]>(
-    "cashflow",
-    initialCashflow
-  );
+  const [activities, setActivities] = useState<KegiatanAPI[]>([]);
+  const [cashflow, setCashflow] = useState<TransaksiAPI[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [balance, setBalance] = useState(0);
 
-  const totalIncome = cashflow
-    .filter((c) => c.type === "income")
-    .reduce((sum, c) => sum + c.amount, 0);
+  // Load data dari backend
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Load kegiatan dan transaksi secara parallel
+        const [kegiatanData, transaksiData, summary] = await Promise.all([
+          kegiatanAPI.getAll(),
+          transaksiAPI.getAll(),
+          transaksiAPI.getSummary(),
+        ]);
+        
+        setActivities(kegiatanData);
+        setCashflow(transaksiData);
+        setTotalIncome(Number(summary.total_pemasukan));
+        setTotalExpense(Number(summary.total_pengeluaran));
+        setBalance(Number(summary.saldo));
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+        toast({
+          title: "Error",
+          description: "Gagal memuat data dashboard",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const totalExpense = cashflow
-    .filter((c) => c.type === "expense")
-    .reduce((sum, c) => sum + c.amount, 0);
+    loadData();
+  }, []);
 
-  const balance = totalIncome - totalExpense;
-
+  // Filter kegiatan yang akan datang (status_kegiatan = 1)
   const upcomingActivities = activities
-    .filter((a) => a.status === "upcoming")
+    .filter((a) => a.status_kegiatan === 1)
     .slice(0, 3);
 
+  // 3 transaksi terakhir
   const recentCashflow = cashflow.slice(0, 3);
+
+  // Hitung kegiatan aktif (status bukan completed/3)
+  const activeActivitiesCount = activities.filter(
+    (a) => a.status_kegiatan !== 3
+  ).length;
 
   const stats = [
     {
       title: "Kegiatan Aktif",
-      value: activities.filter((a) => a.status !== "completed").length,
+      value: activeActivitiesCount,
       icon: Calendar,
       bg: "bg-primary",
       iconColor: "text-primary-foreground",
@@ -73,6 +102,21 @@ export default function Dashboard() {
       iconColor: "text-secondary-foreground",
     },
   ];
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary border-2 border-foreground shadow-cartoon flex items-center justify-center animate-pulse">
+              <Wallet className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground">Memuat dashboard...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -150,7 +194,7 @@ export default function Dashboard() {
               {upcomingActivities.length > 0 ? (
                 <div className="space-y-2 sm:space-y-3">
                   {upcomingActivities.map((activity, index) => {
-                    const dateParts = formatShortDate(activity.date).split(" ");
+                    const dateParts = formatShortDate(activity.tanggal).split(" ");
                     const day = dateParts[0];
                     const month = dateParts[1];
 
@@ -172,11 +216,11 @@ export default function Dashboard() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold truncate text-sm sm:text-base">
-                            {activity.title}
+                            {activity.nama}
                           </h4>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Users className="w-3 h-3" />
-                            <span>{activity.participants} peserta</span>
+                            <span>{activity.jumlah_peserta} peserta</span>
                           </div>
                         </div>
                         <Badge
@@ -228,7 +272,7 @@ export default function Dashboard() {
               {recentCashflow.length > 0 ? (
                 <div className="space-y-2 sm:space-y-3">
                   {recentCashflow.map((item, index) => {
-                    const isIncome = item.type === "income";
+                    const isIncome = item.tipe_transaksi_detail?.nama.toLowerCase() === "pemasukan";
                     return (
                       <motion.div
                         key={item.id}
@@ -250,10 +294,10 @@ export default function Dashboard() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold truncate text-xs sm:text-sm">
-                            {item.title}
+                            {item.nama}
                           </h4>
                           <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
-                            {item.category}
+                            {item.tipe_transaksi_detail?.nama || "-"}
                           </p>
                         </div>
                         <span
@@ -262,7 +306,7 @@ export default function Dashboard() {
                           }`}
                         >
                           {isIncome ? "+" : "-"}{" "}
-                          {formatCurrency(item.amount)
+                          {formatCurrency(Number(item.jumlah))
                             .replace(/\s/g, "")
                             .replace("Rp", "")}
                         </span>
