@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -8,7 +8,6 @@ import {
   Search,
   Filter,
   Flame,
-  Star,
   Heart,
   BookOpen,
 } from "lucide-react";
@@ -29,253 +28,75 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-// Mock data resep
-const recipes = [
-  {
-    id: 1,
-    title: "Nasi Goreng Spesial",
-    description: "Nasi goreng khas Indonesia dengan bumbu rempah pilihan",
-    image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=600",
-    category: "Makanan Utama",
-    difficulty: "Mudah",
-    cookTime: "20 menit",
-    servings: 4,
-    calories: 450,
-    rating: 4.8,
-    ingredients: [
-      "2 piring nasi putih",
-      "2 butir telur",
-      "3 siung bawang putih",
-      "5 siung bawang merah",
-      "2 sdm kecap manis",
-      "Garam dan merica secukupnya",
-    ],
-    steps: [
-      "Tumis bumbu halus hingga harum",
-      "Masukkan telur, orak-arik",
-      "Tambahkan nasi, aduk rata",
-      "Beri kecap manis dan bumbu",
-      "Sajikan hangat",
-    ],
-  },
-  {
-    id: 2,
-    title: "Soto Ayam Kuning",
-    description: "Soto ayam dengan kuah kuning yang segar dan gurih",
-    image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600",
-    category: "Makanan Utama",
-    difficulty: "Sedang",
-    cookTime: "45 menit",
-    servings: 6,
-    calories: 320,
-    rating: 4.9,
-    ingredients: [
-      "500g ayam",
-      "2 liter air",
-      "3 batang serai",
-      "4 lembar daun jeruk",
-      "Kunyit, jahe, lengkuas",
-      "Bawang goreng untuk taburan",
-    ],
-    steps: [
-      "Rebus ayam hingga empuk",
-      "Tumis bumbu halus",
-      "Masukkan ke dalam kaldu",
-      "Tambahkan serai dan daun jeruk",
-      "Sajikan dengan pelengkap",
-    ],
-  },
-  {
-    id: 3,
-    title: "Rendang Daging Sapi",
-    description: "Rendang daging sapi khas Padang yang kaya rempah",
-    image: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600",
-    category: "Makanan Utama",
-    difficulty: "Sulit",
-    cookTime: "3 jam",
-    servings: 8,
-    calories: 580,
-    rating: 5.0,
-    ingredients: [
-      "1kg daging sapi",
-      "1 liter santan kental",
-      "Cabai merah, bawang merah",
-      "Lengkuas, serai, daun jeruk",
-      "Asam kandis",
-      "Garam dan gula merah",
-    ],
-    steps: [
-      "Tumis bumbu halus hingga harum",
-      "Masukkan daging, aduk rata",
-      "Tuang santan, masak dengan api kecil",
-      "Masak hingga bumbu meresap",
-      "Lanjutkan hingga kuah mengering",
-    ],
-  },
-  {
-    id: 4,
-    title: "Gado-Gado Jakarta",
-    description: "Salad sayuran dengan saus kacang yang nikmat",
-    image: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600",
-    category: "Makanan Sehat",
-    difficulty: "Mudah",
-    cookTime: "30 menit",
-    servings: 4,
-    calories: 280,
-    rating: 4.7,
-    ingredients: [
-      "Kangkung, kol, tauge",
-      "Kentang, tahu, tempe",
-      "Telur rebus",
-      "200g kacang tanah",
-      "Cabai, bawang putih",
-      "Gula merah, asam jawa",
-    ],
-    steps: [
-      "Rebus semua sayuran",
-      "Goreng tahu dan tempe",
-      "Haluskan bumbu kacang",
-      "Tata sayuran di piring",
-      "Siram dengan saus kacang",
-    ],
-  },
-  {
-    id: 5,
-    title: "Martabak Manis",
-    description: "Martabak manis dengan berbagai topping favorit",
-    image: "https://images.unsplash.com/photo-1587314168485-3236d6710814?w=600",
-    category: "Camilan",
-    difficulty: "Sedang",
-    cookTime: "40 menit",
-    servings: 4,
-    calories: 520,
-    rating: 4.9,
-    ingredients: [
-      "250g tepung terigu",
-      "3 butir telur",
-      "200ml susu",
-      "1 sdt ragi instan",
-      "Coklat meses, keju",
-      "Mentega dan gula pasir",
-    ],
-    steps: [
-      "Campur tepung, telur, susu, dan ragi",
-      "Diamkan adonan 30 menit",
-      "Tuang adonan di loyang panas",
-      "Taburi topping kesukaan",
-      "Lipat dan sajikan",
-    ],
-  },
-  {
-    id: 6,
-    title: "Es Cendol Dawet",
-    description: "Minuman segar khas Indonesia dengan santan dan gula merah",
-    image: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=600",
-    category: "Minuman",
-    difficulty: "Mudah",
-    cookTime: "25 menit",
-    servings: 6,
-    calories: 180,
-    rating: 4.8,
-    ingredients: [
-      "100g tepung hunkwe",
-      "Daun pandan",
-      "200ml santan kental",
-      "150g gula merah",
-      "Es batu secukupnya",
-    ],
-    steps: [
-      "Masak tepung hunkwe dengan pandan",
-      "Cetak cendol dengan cetakan",
-      "Masak gula merah dengan air",
-      "Susun cendol, santan, sirup",
-      "Tambahkan es batu",
-    ],
-  },
-  {
-    id: 7,
-    title: "Ayam Geprek Sambal Matah",
-    description: "Ayam crispy dengan sambal matah yang pedas segar",
-    image: "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=600",
-    category: "Makanan Utama",
-    difficulty: "Mudah",
-    cookTime: "35 menit",
-    servings: 2,
-    calories: 420,
-    rating: 4.9,
-    ingredients: [
-      "2 potong ayam fillet",
-      "Tepung bumbu siap pakai",
-      "10 cabai rawit",
-      "5 siung bawang merah",
-      "Daun jeruk, serai",
-      "Minyak goreng secukupnya",
-    ],
-    steps: [
-      "Lumuri ayam dengan tepung bumbu",
-      "Goreng hingga crispy",
-      "Iris tipis bawang merah dan cabai",
-      "Campur dengan jeruk nipis",
-      "Geprek ayam, beri sambal",
-    ],
-  },
-  {
-    id: 8,
-    title: "Klepon Ketan",
-    description: "Kue tradisional dengan isian gula merah",
-    image: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=600",
-    category: "Camilan",
-    difficulty: "Sedang",
-    cookTime: "45 menit",
-    servings: 20,
-    calories: 95,
-    rating: 4.6,
-    ingredients: [
-      "250g tepung ketan",
-      "100g gula merah sisir",
-      "Daun pandan",
-      "100g kelapa parut",
-      "Air secukupnya",
-      "Garam 1/4 sdt",
-    ],
-    steps: [
-      "Campur tepung ketan dengan air pandan",
-      "Bentuk bulat, isi gula merah",
-      "Rebus hingga mengapung",
-      "Kukus kelapa parut dengan garam",
-      "Gulingkan klepon di kelapa",
-    ],
-  },
-];
+import { ResepAPI } from "@/types";
+import { resepAPI } from "@/services/api";
+import { toast } from "@/hooks/use-toast";
 
 const categories = [
   "Semua",
-  "Makanan Utama",
-  "Makanan Sehat",
-  "Camilan",
-  "Minuman",
+  "makanan",
+  "minuman",
+  "dessert",
+  "snack",
 ];
-const difficulties = ["Semua", "Mudah", "Sedang", "Sulit"];
+
+const categoryLabels: { [key: string]: string } = {
+  "makanan": "Makanan",
+  "minuman": "Minuman",
+  "dessert": "Dessert",
+  "snack": "Snack",
+};
+
+const difficulties = ["Semua", "mudah", "sedang", "sulit"];
+
+const difficultyLabels: { [key: string]: string } = {
+  "mudah": "Mudah",
+  "sedang": "Sedang",
+  "sulit": "Sulit",
+};
 
 export default function Resep() {
+  const [recipes, setRecipes] = useState<ResepAPI[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [selectedDifficulty, setSelectedDifficulty] = useState("Semua");
   const [favorites, setFavorites] = useState<number[]>([]);
 
+  // Load data dari backend
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await resepAPI.getAll();
+        setRecipes(data);
+      } catch (error) {
+        console.error("Error loading resep:", error);
+        toast({
+          title: "Error",
+          description: "Gagal memuat data resep",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
   // Filter logic
   const filteredRecipes = recipes.filter((recipe) => {
     const matchesSearch =
-      recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      recipe.description.toLowerCase().includes(searchQuery.toLowerCase());
+      recipe.judul.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      recipe.deskripsi.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory =
-      selectedCategory === "Semua" || recipe.category === selectedCategory;
+      selectedCategory === "Semua" || recipe.kategori === selectedCategory;
 
     const matchesDifficulty =
       selectedDifficulty === "Semua" ||
-      recipe.difficulty === selectedDifficulty;
+      recipe.tingkat_kesulitan === selectedDifficulty;
 
     return matchesSearch && matchesCategory && matchesDifficulty;
   });
@@ -287,17 +108,39 @@ export default function Resep() {
   };
 
   const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "Mudah":
+    switch (difficulty.toLowerCase()) {
+      case "mudah":
         return "bg-accent";
-      case "Sedang":
+      case "sedang":
         return "bg-primary";
-      case "Sulit":
+      case "sulit":
         return "bg-highlight";
       default:
         return "bg-secondary";
     }
   };
+
+  const formatTime = (minutes: number) => {
+    if (minutes < 60) {
+      return `${minutes} menit`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours} jam ${mins} menit` : `${hours} jam`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen py-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary border-2 border-foreground shadow-cartoon flex items-center justify-center animate-pulse">
+            <ChefHat className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground">Memuat resep...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-8">
@@ -337,9 +180,10 @@ export default function Resep() {
                   <SelectValue placeholder="Kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
+                  <SelectItem value="Semua">Semua</SelectItem>
+                  {categories.slice(1).map((cat) => (
                     <SelectItem key={cat} value={cat}>
-                      {cat}
+                      {categoryLabels[cat]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -357,9 +201,10 @@ export default function Resep() {
                   <SelectValue placeholder="Tingkat Kesulitan" />
                 </SelectTrigger>
                 <SelectContent>
-                  {difficulties.map((diff) => (
+                  <SelectItem value="Semua">Semua</SelectItem>
+                  {difficulties.slice(1).map((diff) => (
                     <SelectItem key={diff} value={diff}>
-                      {diff}
+                      {difficultyLabels[diff]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -382,95 +227,103 @@ export default function Resep() {
         {/* Recipe Grid */}
         {filteredRecipes.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredRecipes.map((recipe, index) => (
-              <motion.div
-                key={recipe.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="overflow-hidden h-full group hover:shadow-cartoon-lg transition-shadow">
-                  {/* Image Section */}
-                  <div className="aspect-square relative overflow-hidden">
-                    <img
-                      src={recipe.image}
-                      alt={recipe.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                    />
-
-                    {/* Badges Overlay */}
-                    <div className="absolute top-3 left-3 flex flex-col gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="shadow-lg backdrop-blur-sm"
-                      >
-                        {recipe.category}
-                      </Badge>
-                      <Badge
-                        className={`${getDifficultyColor(
-                          recipe.difficulty
-                        )} shadow-lg`}
-                      >
-                        {recipe.difficulty}
-                      </Badge>
-                    </div>
-
-                    {/* Favorite Button */}
-                    <button
-                      onClick={() => toggleFavorite(recipe.id)}
-                      className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border-2 border-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
-                    >
-                      <Heart
-                        className={`w-5 h-5 ${
-                          favorites.includes(recipe.id)
-                            ? "fill-highlight text-highlight"
-                            : "text-muted-foreground"
-                        }`}
+            {filteredRecipes.map((recipe, index) => {
+              const mainImage = recipe.foto?.[0]?.file_path || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600";
+              const totalTime = recipe.waktu_persiapan + recipe.waktu_memasak;
+              
+              return (
+                <motion.div
+                  key={recipe.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card className="overflow-hidden h-full group hover:shadow-cartoon-lg transition-shadow">
+                    {/* Image Section */}
+                    <div className="aspect-square relative overflow-hidden">
+                      <img
+                        src={mainImage}
+                        alt={recipe.judul}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        onError={(e) => {
+                          e.currentTarget.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600";
+                        }}
                       />
-                    </button>
-                  </div>
 
-                  {/* Content */}
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg line-clamp-2 group-hover:text-highlight transition-colors">
-                      {recipe.title}
-                    </CardTitle>
-                    <CardDescription className="line-clamp-2">
-                      {recipe.description}
-                    </CardDescription>
-                  </CardHeader>
+                      {/* Badges Overlay */}
+                      <div className="absolute top-3 left-3 flex flex-col gap-2">
+                        <Badge
+                          variant="secondary"
+                          className="shadow-lg backdrop-blur-sm"
+                        >
+                          {categoryLabels[recipe.kategori] || recipe.kategori}
+                        </Badge>
+                        <Badge
+                          className={`${getDifficultyColor(
+                            recipe.tingkat_kesulitan
+                          )} shadow-lg`}
+                        >
+                          {difficultyLabels[recipe.tingkat_kesulitan] || recipe.tingkat_kesulitan}
+                        </Badge>
+                      </div>
 
-                  <CardContent className="space-y-3">
-                    {/* Recipe Info */}
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Clock className="w-4 h-4 shrink-0" />
-                        <span>{recipe.cookTime}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Users className="w-4 h-4 shrink-0" />
-                        <span>{recipe.servings} porsi</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Flame className="w-4 h-4 shrink-0" />
-                        <span>{recipe.calories} kal</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <BookOpen className="w-4 h-4 shrink-0" />
-                        <span>{recipe.steps.length} langkah</span>
-                      </div>
+                      {/* Favorite Button */}
+                      <button
+                        onClick={() => toggleFavorite(recipe.id!)}
+                        className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border-2 border-foreground shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+                      >
+                        <Heart
+                          className={`w-5 h-5 ${
+                            favorites.includes(recipe.id!)
+                              ? "fill-highlight text-highlight"
+                              : "text-muted-foreground"
+                          }`}
+                        />
+                      </button>
                     </div>
 
-                    {/* CTA Button */}
-                    <Link to={`/resep/${recipe.id}`}>
-                      <Button className="w-full mt-4" size="sm">
-                        Lihat Resep Lengkap
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    {/* Content */}
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg line-clamp-2 group-hover:text-highlight transition-colors">
+                        {recipe.judul}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2">
+                        {recipe.deskripsi}
+                      </CardDescription>
+                    </CardHeader>
+
+                    <CardContent className="space-y-3">
+                      {/* Recipe Info */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Clock className="w-4 h-4 shrink-0" />
+                          <span>{formatTime(totalTime)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Users className="w-4 h-4 shrink-0" />
+                          <span>{recipe.porsi} porsi</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Flame className="w-4 h-4 shrink-0" />
+                          <span>{recipe.kalori} kal</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <BookOpen className="w-4 h-4 shrink-0" />
+                          <span>{recipe.steps?.length || 0} langkah</span>
+                        </div>
+                      </div>
+
+                      {/* CTA Button */}
+                      <Link to={`/resep/${recipe.id}`}>
+                        <Button className="w-full mt-4" size="sm">
+                          Lihat Resep Lengkap
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
         ) : (
           <motion.div

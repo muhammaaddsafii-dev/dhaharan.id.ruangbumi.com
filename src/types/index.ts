@@ -117,5 +117,60 @@ export interface VolunteerAPI {
   updated_at?: string;
 }
 
+// Types untuk Resep
+export interface BahanResep {
+  id?: number;
+  resep?: number;
+  nama: string;
+  takaran: string;
+}
+
+export interface StepsResep {
+  id?: number;
+  urutan: number;
+  resep?: number;
+  nama: string;
+}
+
+export interface TipsResep {
+  id?: number;
+  urutan: number;
+  resep?: number;
+  nama: string;
+}
+
+export interface NutrisiResep {
+  id?: number;
+  label: string;
+  nilai: string;
+  resep?: number;
+}
+
+export interface FotoResep {
+  id?: number;
+  resep?: number;
+  file_path: string;
+  file_name: string;
+}
+
+export interface ResepAPI {
+  id?: number;
+  judul: string;
+  deskripsi: string;
+  kategori: string;
+  tingkat_kesulitan: string;
+  waktu_memasak: number;
+  waktu_persiapan: number;
+  porsi: number;
+  kalori: number;
+  bahan?: BahanResep[];
+  steps?: StepsResep[];
+  tips?: TipsResep[];
+  nutrisi?: NutrisiResep[];
+  foto?: FotoResep[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Modal Mode
 export type ModalMode = "create" | "edit" | "view";

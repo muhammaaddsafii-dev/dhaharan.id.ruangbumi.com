@@ -326,4 +326,55 @@ export const volunteerAPI = {
   },
 };
 
+// Resep API
+export const resepAPI = {
+  // Get all resep
+  getAll: async () => {
+    try {
+      const { data } = await api.get('/resep/');
+      
+      if (data && typeof data === 'object') {
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+      
+      return [];
+    } catch (error: any) {
+      console.error('Error in resepAPI.getAll:', error);
+      throw error;
+    }
+  },
+
+  // Get single resep by ID
+  getById: async (id: number) => {
+    const { data } = await api.get(`/resep/${id}/`);
+    return data;
+  },
+
+  // Filter by category
+  getByKategori: async (kategori: string) => {
+    try {
+      const { data } = await api.get(`/resep/by_kategori/?kategori=${kategori}`);
+      
+      if (data && typeof data === 'object') {
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+      
+      return [];
+    } catch (error: any) {
+      console.error('Error in resepAPI.getByKategori:', error);
+      return [];
+    }
+  },
+};
+
 export default api;
