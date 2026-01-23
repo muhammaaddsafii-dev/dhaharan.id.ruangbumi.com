@@ -258,4 +258,72 @@ export const transaksiAPI = {
   },
 };
 
+// Volunteer API
+export const volunteerAPI = {
+  // Get all volunteers
+  getAll: async () => {
+    try {
+      const { data } = await api.get('/volunteer/');
+      
+      if (data && typeof data === 'object') {
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+      
+      return [];
+    } catch (error: any) {
+      console.error('Error in volunteerAPI.getAll:', error);
+      throw error;
+    }
+  },
+
+  // Get pending volunteers
+  getPending: async () => {
+    try {
+      const { data } = await api.get('/volunteer/pending/');
+      
+      if (data && typeof data === 'object') {
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+      
+      return [];
+    } catch (error: any) {
+      console.error('Error in volunteerAPI.getPending:', error);
+      return [];
+    }
+  },
+
+  // Create new volunteer
+  create: async (volunteer: any) => {
+    const { data } = await api.post('/volunteer/', volunteer);
+    return data;
+  },
+
+  // Update volunteer
+  update: async (id: number, volunteer: any) => {
+    const { data } = await api.patch(`/volunteer/${id}/`, volunteer);
+    return data;
+  },
+
+  // Approve volunteer
+  approve: async (id: number) => {
+    const { data } = await api.post(`/volunteer/${id}/approve/`);
+    return data;
+  },
+
+  // Delete volunteer (reject)
+  delete: async (id: number) => {
+    await api.delete(`/volunteer/${id}/`);
+  },
+};
+
 export default api;

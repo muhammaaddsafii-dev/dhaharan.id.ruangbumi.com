@@ -87,5 +87,35 @@ export interface TransaksiAPI {
   updated_at?: string;
 }
 
+// Types untuk Volunteer
+export interface VolunteerRequest {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  skills: string[];
+  motivation: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
+export interface VolunteerAPI {
+  id?: number;
+  nama: string;
+  email: string;
+  phone: string;
+  skill: string;
+  motivasi: string;
+  kegiatan: number;
+  kegiatan_detail?: {
+    id: number;
+    nama: string;
+    tanggal: string;
+  };
+  is_approved: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Modal Mode
 export type ModalMode = "create" | "edit" | "view";
