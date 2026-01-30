@@ -11,8 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { KegiatanAPI } from "@/types";
-import { kegiatanAPI } from "@/services/api";
+import { KegiatanAPI, Pengurus } from "@/types";
+import { kegiatanAPI, pengurusAPI } from "@/services/api";
 
 
 
@@ -42,38 +42,7 @@ const features = [
 ];
 
 // DATA SLIDER PENGURUS
-const pengurus = [
-  {
-    id: 1,
-    nama: "Lorem Ipsum",
-    jabatan: "Ketua Komunitas",
-    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-1.jpg"
-  },
-  {
-    id: 2,
-    nama: "Lorem Ipsum",
-    jabatan: "Sekretaris",
-    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-2.jpg"
-  },
-  {
-    id: 3,
-    nama: "Lorem Ipsum",
-    jabatan: "Koordinator Lapangan",
-    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-3.jpg",
-  },
-  {
-    id: 4,
-    nama: "Lorem Ipsum",
-    jabatan: "Koordinator Lapangan",
-    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-4.jpg",
-  },
-  {
-    id: 5,
-    nama: "Lorem Ipsum",
-    jabatan: "Koordinator Lapangan",
-    foto: "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/tim-5.jpg",
-  },
-];
+// Removed dummy data
 
 export default function Index() {
   const [current, setCurrent] = useState(0);
@@ -81,17 +50,20 @@ export default function Index() {
   const [isLoadingActivities, setIsLoadingActivities] = useState(true);
 
   // Load 3 kegiatan terbaru
+  const [pengurusList, setPengurusList] = useState<Pengurus[]>([]);
+  const [isLoadingPengurus, setIsLoadingPengurus] = useState(true);
+
   useEffect(() => {
     const loadRecentActivities = async () => {
       try {
         setIsLoadingActivities(true);
         const allKegiatan = await kegiatanAPI.getAll();
-        
+
         // Sort by tanggal descending dan ambil 3 terbaru
         const sorted = allKegiatan
           .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
           .slice(0, 3);
-        
+
         setRecentActivities(sorted);
       } catch (error) {
         console.error("Error loading recent activities:", error);
@@ -100,25 +72,40 @@ export default function Index() {
       }
     };
 
+    const loadPengurus = async () => {
+      try {
+        setIsLoadingPengurus(true);
+        const data = await pengurusAPI.getAll();
+        setPengurusList(data);
+      } catch (error) {
+        console.error("Error loading pengurus:", error);
+      } finally {
+        setIsLoadingPengurus(false);
+      }
+    };
+
     loadRecentActivities();
+    loadPengurus();
   }, []);
 
   // Format tanggal
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', { 
+    return date.toLocaleDateString('id-ID', {
       day: 'numeric',
-      month: 'long', 
-      year: 'numeric' 
+      month: 'long',
+      year: 'numeric'
     });
   };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % pengurus.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+    if (pengurusList.length > 0) {
+      const interval = setInterval(() => {
+        setCurrent((prev) => (prev + 1) % pengurusList.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [pengurusList]);
 
   return (
     <div className="min-h-screen">
@@ -326,8 +313,8 @@ export default function Index() {
                           <Calendar className="w-4 h-4" /> {formatDate(activity.tanggal)}
                         </span>
                         <span className="flex items-center gap-2">
-                          <Map className="w-4 h-4" /> 
-                          Lat: {activity.lokasi.coordinates[1].toFixed(4)}, 
+                          <Map className="w-4 h-4" />
+                          Lat: {activity.lokasi.coordinates[1].toFixed(4)},
                           Lng: {activity.lokasi.coordinates[0].toFixed(4)}
                         </span>
                       </CardDescription>
@@ -364,64 +351,78 @@ export default function Index() {
 
           {/* Wrapper Slider */}
           <div className="relative w-full max-w-lg mx-auto mt-12 overflow-hidden">
-            {/* Card Slide */}
-            <div
-              className="flex transition-transform duration-700 ease-in-out"
-              style={{ transform: `translateX(-${current * 100}%)` }}
-            >
-              {pengurus.map((p) => (
-                <div key={p.id} className="min-w-full flex justify-center px-4">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className="bg-white/80 backdrop-blur-xl shadow-cartoon-lg border-2 border-foreground p-6 sm:p-8 rounded-3xl w-full max-w-sm flex flex-col items-center"
-                  >
-                    <motion.div
-                      className="relative"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <img
-                        src={p.foto}
-                        alt={p.nama}
-                        className="w-36 h-36 sm:w-44 sm:h-44 rounded-full object-cover border-4 border-white shadow-xl"
-                      />
-                      <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-primary rounded-full border-4 border-white shadow-lg flex items-center justify-center">
-                        <Heart
-                          className="w-6 h-6 text-primary-foreground"
-                          fill="currentColor"
-                        />
-                      </div>
-                    </motion.div>
+            {isLoadingPengurus ? (
+              <div className="flex justify-center p-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              </div>
+            ) : pengurusList.length > 0 ? (
+              <>
+                {/* Card Slide */}
+                <div
+                  className="flex transition-transform duration-700 ease-in-out"
+                  style={{ transform: `translateX(-${current * 100}%)` }}
+                >
+                  {pengurusList.map((p) => (
+                    <div key={p.id} className="min-w-full flex justify-center px-4">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5 }}
+                        className="bg-white/80 backdrop-blur-xl shadow-cartoon-lg border-2 border-foreground p-6 sm:p-8 rounded-3xl w-full max-w-sm flex flex-col items-center"
+                      >
+                        <motion.div
+                          className="relative"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <img
+                            src={p.photo || "https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/default-avatar.jpg"}
+                            alt={p.nama}
+                            className="w-36 h-36 sm:w-44 sm:h-44 rounded-full object-cover border-4 border-white shadow-xl"
+                            onError={(e) => {
+                              e.currentTarget.src = "https://ui-avatars.com/api/?name=" + encodeURIComponent(p.nama) + "&background=random";
+                            }}
+                          />
+                          <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-primary rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                            <Heart
+                              className="w-6 h-6 text-primary-foreground"
+                              fill="currentColor"
+                            />
+                          </div>
+                        </motion.div>
 
-                    <h3 className="mt-6 text-xl sm:text-2xl font-semibold font-fredoka">
-                      {p.nama}
-                    </h3>
-                    <Badge variant="secondary" className="mt-2">
-                      {p.jabatan}
-                    </Badge>
-                  </motion.div>
+                        <h3 className="mt-6 text-xl sm:text-2xl font-semibold font-fredoka">
+                          {p.nama}
+                        </h3>
+                        <Badge variant="secondary" className="mt-2">
+                          {p.jabatan}
+                        </Badge>
+                      </motion.div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {/* Bullet Indicator */}
-            <div className="flex justify-center gap-2 sm:gap-3 mt-8">
-              {pengurus.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrent(idx)}
-                  className={`transition-all rounded-full ${
-                    current === idx
-                      ? "w-8 h-3 bg-highlight shadow-md"
-                      : "w-3 h-3 bg-muted-foreground/30 hover:bg-muted-foreground/50"
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
+                {/* Bullet Indicator */}
+                <div className="flex justify-center gap-2 sm:gap-3 mt-8">
+                  {pengurusList.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrent(idx)}
+                      className={`transition-all rounded-full ${current === idx
+                          ? "w-8 h-3 bg-highlight shadow-md"
+                          : "w-3 h-3 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                        }`}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>Belum ada data pengurus yang ditampilkan.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

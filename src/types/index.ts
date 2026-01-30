@@ -172,5 +172,15 @@ export interface ResepAPI {
   updated_at?: string;
 }
 
+// Types for Pengurus
+export interface Pengurus {
+  id?: number;
+  nama: string;
+  jabatan: string;
+  photo?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Modal Mode
 export type ModalMode = "create" | "edit" | "view";

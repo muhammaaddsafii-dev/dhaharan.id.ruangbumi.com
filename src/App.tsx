@@ -21,6 +21,7 @@ import DonationSection from "./pages/DonationSection";
 import VolunteerSection from "./pages/VolunteerSection";
 import VolunteersView from "./pages/VolunteersView";
 import DonationsView from "./pages/DonationsView";
+import PengurusPage from "./pages/Pengurus";
 
 const queryClient = new QueryClient();
 
@@ -45,11 +46,12 @@ const App = () => (
           <Route path="/register" element={<Login />} />
           <Route path="/AddCashflow" element={<AddCashflow />} />
           <Route path="/activities" element={<Activities />} />
-          <Route path="/settings" element={<Setting />} />
+          {/* <Route path="/settings" element={<Setting />} /> */}
           <Route path="/donationsection" element={<DonationSection />} />
           <Route path="/volunteersection" element={<VolunteerSection />} />
           <Route path="/volunteersview" element={<VolunteersView />} />
           <Route path="/donationsview" element={<DonationsView />} />
+          <Route path="/pengurus" element={<PengurusPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

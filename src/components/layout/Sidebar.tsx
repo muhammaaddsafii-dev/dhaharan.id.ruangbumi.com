@@ -22,8 +22,9 @@ const menuItems = [
   { icon: ChefHat, label: "Resep", path: "/manage-resep" },
   { icon: Wallet, label: "Cashflow", path: "/addcashflow" },
   { icon: Users, label: "Volunteer", path: "/volunteersview" },
+  { icon: Users, label: "Pengurus", path: "/pengurus" },
   // { icon: DollarSign, label: "Donasi", path: "/donationsview" },
-  { icon: Settings, label: "Pengaturan", path: "/settings" },
+  // { icon: Settings, label: "Pengaturan", path: "/settings" },
 ];
 
 export default function Sidebar() {

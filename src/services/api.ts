@@ -12,18 +12,19 @@ const api = axios.create({
 });
 
 // Helper untuk upload ke S3
-export const uploadToS3 = async (file: File): Promise<string> => {
+export const uploadToS3 = async (file: File, folder: string = 'kegiatan'): Promise<string> => {
   try {
     // Upload via backend endpoint
     const formData = new FormData();
     formData.append('file', file);
-    
+    formData.append('folder', folder);
+
     const { data } = await api.post('/upload/s3/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    
+
     return data.url;
   } catch (error) {
     console.error('Error uploading to S3:', error);
@@ -37,21 +38,21 @@ export const kegiatanAPI = {
   getAll: async (): Promise<KegiatanAPI[]> => {
     try {
       const { data } = await api.get('/kegiatan/');
-      
+
       console.log('Raw API response:', data);
-      
+
       if (data && typeof data === 'object') {
         // Check if it's paginated response (has 'results' field)
         if ('results' in data && Array.isArray(data.results)) {
           return data.results;
         }
-        
+
         // Check if it's direct array
         if (Array.isArray(data)) {
           return data;
         }
       }
-      
+
       console.warn('Unexpected API response format:', data);
       return [];
     } catch (error: any) {
@@ -101,10 +102,10 @@ export const fotoKegiatanAPI = {
 
   // Create new foto kegiatan
   create: async (fotoData: FormData | Omit<FotoKegiatan, 'id'>): Promise<FotoKegiatan> => {
-    const config = fotoData instanceof FormData 
+    const config = fotoData instanceof FormData
       ? { headers: { 'Content-Type': 'multipart/form-data' } }
       : {};
-    
+
     const { data } = await api.post('/foto-kegiatan/', fotoData, config);
     return data;
   },
@@ -120,21 +121,21 @@ export const jenisKegiatanAPI = {
   getAll: async (): Promise<JenisKegiatan[]> => {
     try {
       const { data } = await api.get('/jenis-kegiatan/');
-      
+
       console.log('Raw API response for jenisKegiatanAPI.getAll:', data);
-      
+
       if (data && typeof data === 'object') {
         // Check if it's paginated response (has 'results' field)
         if ('results' in data && Array.isArray(data.results)) {
           return data.results;
         }
-        
+
         // Check if it's direct array
         if (Array.isArray(data)) {
           return data;
         }
       }
-      
+
       console.warn('Unexpected jenisKegiatan API response format:', data);
       return [];
     } catch (error: any) {
@@ -149,21 +150,21 @@ export const statusKegiatanAPI = {
   getAll: async (): Promise<StatusKegiatan[]> => {
     try {
       const { data } = await api.get('/status-kegiatan/');
-      
+
       console.log('Raw API response for statusKegiatanAPI.getAll:', data);
-      
+
       if (data && typeof data === 'object') {
         // Check if it's paginated response (has 'results' field)
         if ('results' in data && Array.isArray(data.results)) {
           return data.results;
         }
-        
+
         // Check if it's direct array
         if (Array.isArray(data)) {
           return data;
         }
       }
-      
+
       console.warn('Unexpected statusKegiatan API response format:', data);
       return [];
     } catch (error: any) {
@@ -178,7 +179,7 @@ export const tipeTransaksiAPI = {
   getAll: async () => {
     try {
       const { data } = await api.get('/tipe-transaksi/');
-      
+
       if (data && typeof data === 'object') {
         if ('results' in data && Array.isArray(data.results)) {
           return data.results;
@@ -187,7 +188,7 @@ export const tipeTransaksiAPI = {
           return data;
         }
       }
-      
+
       return [];
     } catch (error: any) {
       console.error('Error in tipeTransaksiAPI.getAll:', error);
@@ -202,7 +203,7 @@ export const transaksiAPI = {
   getAll: async () => {
     try {
       const { data } = await api.get('/transaksi/');
-      
+
       if (data && typeof data === 'object') {
         if ('results' in data && Array.isArray(data.results)) {
           return data.results;
@@ -211,7 +212,7 @@ export const transaksiAPI = {
           return data;
         }
       }
-      
+
       return [];
     } catch (error: any) {
       console.error('Error in transaksiAPI.getAll:', error);
@@ -264,7 +265,7 @@ export const volunteerAPI = {
   getAll: async () => {
     try {
       const { data } = await api.get('/volunteer/');
-      
+
       if (data && typeof data === 'object') {
         if ('results' in data && Array.isArray(data.results)) {
           return data.results;
@@ -273,7 +274,7 @@ export const volunteerAPI = {
           return data;
         }
       }
-      
+
       return [];
     } catch (error: any) {
       console.error('Error in volunteerAPI.getAll:', error);
@@ -285,7 +286,7 @@ export const volunteerAPI = {
   getPending: async () => {
     try {
       const { data } = await api.get('/volunteer/pending/');
-      
+
       if (data && typeof data === 'object') {
         if ('results' in data && Array.isArray(data.results)) {
           return data.results;
@@ -294,7 +295,7 @@ export const volunteerAPI = {
           return data;
         }
       }
-      
+
       return [];
     } catch (error: any) {
       console.error('Error in volunteerAPI.getPending:', error);
@@ -332,7 +333,7 @@ export const resepAPI = {
   getAll: async () => {
     try {
       const { data } = await api.get('/resep/');
-      
+
       if (data && typeof data === 'object') {
         if ('results' in data && Array.isArray(data.results)) {
           return data.results;
@@ -341,7 +342,7 @@ export const resepAPI = {
           return data;
         }
       }
-      
+
       return [];
     } catch (error: any) {
       console.error('Error in resepAPI.getAll:', error);
@@ -359,7 +360,7 @@ export const resepAPI = {
   getByKategori: async (kategori: string) => {
     try {
       const { data } = await api.get(`/resep/by_kategori/?kategori=${kategori}`);
-      
+
       if (data && typeof data === 'object') {
         if ('results' in data && Array.isArray(data.results)) {
           return data.results;
@@ -368,12 +369,60 @@ export const resepAPI = {
           return data;
         }
       }
-      
+
       return [];
     } catch (error: any) {
       console.error('Error in resepAPI.getByKategori:', error);
       return [];
     }
+  },
+};
+
+// Pengurus API
+export const pengurusAPI = {
+  // Get all pengurus
+  getAll: async () => {
+    try {
+      const { data } = await api.get('/pengurus/');
+
+      if (data && typeof data === 'object') {
+        if ('results' in data && Array.isArray(data.results)) {
+          return data.results;
+        }
+        if (Array.isArray(data)) {
+          return data;
+        }
+      }
+
+      return [];
+    } catch (error: any) {
+      console.error('Error in pengurusAPI.getAll:', error);
+      throw error;
+    }
+  },
+
+  // Get single pengurus by ID
+  getById: async (id: number) => {
+    const { data } = await api.get(`/pengurus/${id}/`);
+    return data;
+  },
+
+  // Create new pengurus
+  create: async (pengurus: any) => {
+    const { data } = await api.post('/pengurus/', pengurus);
+    return data;
+  },
+
+  // Update pengurus
+  update: async (id: number, pengurus: any) => {
+    const { data } = await api.patch(`/pengurus/${id}/`, pengurus);
+    return data;
+  },
+
+  // Delete pengurus
+  delete: async (id: number) => {
+    await api.delete(`/pengurus/${id}/`);
+    return true;
   },
 };
 
