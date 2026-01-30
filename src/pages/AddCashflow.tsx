@@ -1,14 +1,30 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Wallet, Search, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Wallet, Search, TrendingUp, TrendingDown, Download, Eye, Pencil, Trash2 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import CashflowCard from "@/components/cashflow/CashflowCard";
 import CashflowModal from "@/components/cashflow/CashflowModal";
 import { CashflowItem, ModalMode, TransaksiAPI, TipeTransaksi } from "@/types";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 import { toast } from "@/hooks/use-toast";
 import { transaksiAPI, tipeTransaksiAPI } from "@/services/api";
 
@@ -19,6 +35,7 @@ export default function Cashflow() {
   const [filterType, setFilterType] = useState<"all" | "income" | "expense">(
     "all"
   );
+  const [sortType, setSortType] = useState<"monthly" | "yearly">("monthly");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>("create");
   const [selectedItem, setSelectedItem] = useState<CashflowItem | null>(null);
@@ -27,11 +44,15 @@ export default function Cashflow() {
   const [totalExpense, setTotalExpense] = useState(0);
   const [balance, setBalance] = useState(0);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; // Mostrar 5 grupos por página
+
   // Fungsi untuk mengkonversi TransaksiAPI ke CashflowItem
   const convertToCashflowItem = (transaksi: TransaksiAPI): CashflowItem => {
     const tipeNama = transaksi.tipe_transaksi_detail?.nama || "";
     const type = tipeNama.toLowerCase() === "pemasukan" ? "income" : "expense";
-    
+
     return {
       id: transaksi.id?.toString() || "",
       title: transaksi.nama,
@@ -48,7 +69,7 @@ export default function Cashflow() {
     // Cari tipe transaksi berdasarkan type
     const tipeNama = item.type === "income" ? "Pemasukan" : "Pengeluaran";
     const tipe = tipeTransaksi.find(t => t.nama === tipeNama);
-    
+
     return {
       nama: item.title,
       deskripsi: item.description,
@@ -63,22 +84,22 @@ export default function Cashflow() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Load tipe transaksi terlebih dahulu
         const tipeData = await tipeTransaksiAPI.getAll();
         setTipeTransaksi(tipeData);
-        
+
         // Load transaksi
         const transaksiData = await transaksiAPI.getAll();
         const cashflowData = transaksiData.map(convertToCashflowItem);
         setCashflow(cashflowData);
-        
+
         // Load summary
         const summary = await transaksiAPI.getSummary();
         setTotalIncome(Number(summary.total_pemasukan));
         setTotalExpense(Number(summary.total_pengeluaran));
         setBalance(Number(summary.saldo));
-        
+
       } catch (error) {
         console.error("Error loading cashflow data:", error);
         toast({
@@ -100,7 +121,35 @@ export default function Cashflow() {
       c.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === "all" || c.type === filterType;
     return matchesSearch && matchesType;
+  }).sort((a, b) => {
+    // Always sort by date descending internally
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
+
+  // Group by month or year
+  const groupedCashflow = filteredCashflow.reduce((acc, item) => {
+    const date = new Date(item.date);
+    let key = "";
+
+    if (sortType === "monthly") {
+      key = date.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+    } else { // yearly
+      key = date.getFullYear().toString();
+    }
+
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(item);
+    return acc;
+  }, {} as Record<string, CashflowItem[]>);
+
+  const handleExport = () => {
+    // Assuming backend is running on localhost:8000. 
+    // Ideally this URL comes from env or api service configuration
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+    window.location.href = `${API_BASE_URL}/transaksi/export_excel/?group_by=${sortType}`;
+  };
 
   const handleCreate = () => {
     setModalMode("create");
@@ -123,16 +172,16 @@ export default function Cashflow() {
   const handleDelete = async (id: string) => {
     try {
       await transaksiAPI.delete(Number(id));
-      
+
       // Update local state
       setCashflow(cashflow.filter((c) => c.id !== id));
-      
+
       // Reload summary
       const summary = await transaksiAPI.getSummary();
       setTotalIncome(Number(summary.total_pemasukan));
       setTotalExpense(Number(summary.total_pengeluaran));
       setBalance(Number(summary.saldo));
-      
+
       toast({
         title: "Transaksi Dihapus",
         description: "Transaksi berhasil dihapus dari daftar.",
@@ -153,9 +202,9 @@ export default function Cashflow() {
         const transaksiData = convertToTransaksiAPI(data);
         const newTransaksi = await transaksiAPI.create(transaksiData);
         const newItem = convertToCashflowItem(newTransaksi);
-        
+
         setCashflow([newItem, ...cashflow]);
-        
+
         toast({
           title: "Transaksi Ditambahkan! 💰",
           description: "Transaksi baru berhasil ditambahkan.",
@@ -164,23 +213,23 @@ export default function Cashflow() {
         const transaksiData = convertToTransaksiAPI(data);
         const updatedTransaksi = await transaksiAPI.update(Number(selectedItem.id), transaksiData);
         const updatedItem = convertToCashflowItem(updatedTransaksi);
-        
+
         setCashflow(
           cashflow.map((c) => (c.id === selectedItem.id ? updatedItem : c))
         );
-        
+
         toast({
           title: "Transaksi Diperbarui",
           description: "Perubahan berhasil disimpan.",
         });
       }
-      
+
       // Reload summary
       const summary = await transaksiAPI.getSummary();
       setTotalIncome(Number(summary.total_pemasukan));
       setTotalExpense(Number(summary.total_pengeluaran));
       setBalance(Number(summary.saldo));
-      
+
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error saving transaksi:", error);
@@ -308,9 +357,8 @@ export default function Cashflow() {
                     Saldo
                   </p>
                   <p
-                    className={`font-fredoka text-xs sm:text-lg md:text-xl font-bold truncate ${
-                      balance >= 0 ? "text-accent" : "text-highlight"
-                    }`}
+                    className={`font-fredoka text-xs sm:text-lg md:text-xl font-bold truncate ${balance >= 0 ? "text-accent" : "text-highlight"
+                      }`}
                   >
                     {formatCurrency(balance)
                       .replace(/\s/g, "")
@@ -369,22 +417,125 @@ export default function Cashflow() {
             Pengeluaran
           </Button>
         </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+          <Select value={sortType} onValueChange={(v: "monthly" | "yearly") => setSortType(v)}>
+            <SelectTrigger className="w-[140px] h-10 sm:h-11">
+              <SelectValue placeholder="Urutkan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monthly">Bulanan</SelectItem>
+              <SelectItem value="yearly">Tahunan</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            className="h-10 sm:h-11"
+            onClick={handleExport}
+          >
+            <Download className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
+            <span className="hidden sm:inline">Export</span>
+          </Button>
+        </div>
       </motion.div>
 
       {/* Cashflow List */}
+      {/* Cashflow List / Table */}
       {filteredCashflow.length > 0 ? (
-        <div className="space-y-3 sm:space-y-4">
-          {filteredCashflow.map((item, index) => (
-            <CashflowCard
-              key={item.id}
-              item={item}
-              index={index}
-              onView={handleView}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
+        filterType === "all" ? (
+          <div className="space-y-6">
+            {Object.entries(groupedCashflow)
+              .sort(([, itemsA], [, itemsB]) => new Date(itemsB[0].date).getTime() - new Date(itemsA[0].date).getTime())
+              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+              .map(([groupTitle, items]) => (
+                <div key={groupTitle} className="space-y-3">
+                  <h3 className="font-fredoka text-lg font-semibold text-foreground px-1">{groupTitle}</h3>
+                  <div className="rounded-xl border-2 border-foreground shadow-cartoon overflow-hidden bg-card">
+                    <Table>
+                      <TableHeader className="bg-accent [&_th]:text-accent-foreground text-center">
+                        <TableRow className="hover:bg-accent">
+                          <TableHead className="w-[50px] text-center">No</TableHead>
+                          <TableHead>Nama Transaksi</TableHead>
+                          <TableHead className="text-center">Tanggal</TableHead>
+                          <TableHead className="text-center">Tipe</TableHead>
+                          <TableHead className="text-right">Jumlah</TableHead>
+                          <TableHead className="text-center">Aksi</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {items.map((item, index) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="text-center font-medium">{index + 1}</TableCell>
+                            <TableCell>
+                              <div className="font-medium">{item.title}</div>
+                              <div className="text-sm text-muted-foreground truncate max-w-[200px]">{item.description}</div>
+                            </TableCell>
+                            <TableCell className="text-center">{formatDate(item.date)}</TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant={item.type === 'income' ? 'accent' : 'highlight'}>
+                                {item.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-bold">
+                              {formatCurrency(item.amount)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex justify-center gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => handleView(item)}>
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                                  <Pencil className="w-4 h-4 text-orange-500" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ))}
+
+            {/* Pagination Controls */}
+            {Object.keys(groupedCashflow).length > itemsPerPage && (
+              <div className="flex justify-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Sebelumnya
+                </Button>
+                <div className="flex items-center px-4 font-medium">
+                  Halaman {currentPage} dari {Math.ceil(Object.keys(groupedCashflow).length / itemsPerPage)}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(Object.keys(groupedCashflow).length / itemsPerPage), p + 1))}
+                  disabled={currentPage >= Math.ceil(Object.keys(groupedCashflow).length / itemsPerPage)}
+                >
+                  Selanjutnya
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3 sm:space-y-4">
+            {filteredCashflow.map((item, index) => (
+              <CashflowCard
+                key={item.id}
+                item={item}
+                index={index}
+                onView={handleView}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        )
       ) : (
         <motion.div
           initial={{ opacity: 0 }}

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { VolunteerAPI, KegiatanAPI } from "@/types";
 import { formatDate } from "@/utils/formatters";
 import { volunteerAPI, kegiatanAPI } from "@/services/api";
@@ -22,11 +23,15 @@ const statusConfig = {
 };
 
 export default function VolunteersView() {
-  const [filter, setFilter] = useState<"all" | "pending" | "approved">("all");
+  const [filter, setFilter] = useState<"pending" | "approved">("pending");
   const [volunteers, setVolunteers] = useState<VolunteerAPI[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVolunteer, setEditingVolunteer] = useState<VolunteerAPI | null>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [kegiatanList, setKegiatanList] = useState<KegiatanAPI[]>([]);
   const [isLoadingKegiatan, setIsLoadingKegiatan] = useState(false);
 
@@ -117,6 +122,26 @@ export default function VolunteersView() {
     }
   };
 
+  const onToggleStatus = async (volunteer: VolunteerAPI) => {
+    try {
+      await volunteerAPI.update(volunteer.id!, {
+        is_approved: !volunteer.is_approved
+      });
+      toast({
+        title: "Status Diperbarui",
+        description: `Volunteer berhasil diubah menjadi ${!volunteer.is_approved ? "Diterima" : "Menunggu"}`,
+      });
+      loadVolunteers();
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Error",
+        description: "Gagal memperbarui status volunteer",
+        variant: "destructive",
+      });
+    }
+  };
+
   const onEdit = (volunteer: VolunteerAPI) => {
     setEditingVolunteer(volunteer);
     setFormData({
@@ -148,7 +173,7 @@ export default function VolunteersView() {
       };
 
       await volunteerAPI.update(editingVolunteer.id!, updateData);
-      
+
       toast({
         title: "Data Diperbarui",
         description: "Data volunteer berhasil diperbarui",
@@ -169,14 +194,13 @@ export default function VolunteersView() {
 
   const filteredVolunteers = volunteers
     .filter((v) => {
-      if (filter === "all") return true;
       if (filter === "pending") return !v.is_approved;
       if (filter === "approved") return v.is_approved;
       return true;
     })
     .sort(
       (a, b) =>
-        new Date(b.created_at || "").getTime() - 
+        new Date(b.created_at || "").getTime() -
         new Date(a.created_at || "").getTime()
     );
 
@@ -263,7 +287,7 @@ export default function VolunteersView() {
 
       {/* ================= FILTER - RESPONSIVE ================= */}
       <div className="flex gap-2 flex-wrap mb-4 sm:mb-6 overflow-x-auto pb-1">
-        {(["all", "pending", "approved"] as const).map((status) => (
+        {(["pending", "approved"] as const).map((status) => (
           <Button
             key={status}
             size="sm"
@@ -271,103 +295,216 @@ export default function VolunteersView() {
             onClick={() => setFilter(status)}
             className="h-9 sm:h-10 text-xs sm:text-sm shrink-0"
           >
-            {status === "all" ? "Semua" : statusConfig[status].label}
+            {statusConfig[status].label}
           </Button>
         ))}
       </div>
 
       {/* ================= LIST - RESPONSIVE ================= */}
+      {/* ================= LIST - RESPONSIVE ================= */}
       {filteredVolunteers.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          {filteredVolunteers.map((v, index) => (
-            <motion.div
-              key={v.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Card className="hover:shadow-cartoon transition-all h-full">
-                <CardContent className="p-4 sm:p-5 space-y-2 sm:space-y-3">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-fredoka text-base sm:text-lg font-bold truncate">
-                        {v.nama}
-                      </h3>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">
-                        {v.created_at ? formatDate(v.created_at) : "-"}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={v.is_approved ? "accent" : "default"}
-                      className="text-[10px] sm:text-xs shrink-0"
-                    >
-                      {v.is_approved ? "Diterima" : "Menunggu"}
-                    </Badge>
-                  </div>
+        filter === "approved" ? (
+          <div className="rounded-xl border-2 border-foreground shadow-cartoon overflow-hidden bg-card">
+            <Table>
+              <TableHeader className="bg-accent [&_th]:text-accent-foreground text-center">
+                <TableRow className="hover:bg-accent">
+                  <TableHead className="w-[50px] text-center">No</TableHead>
+                  <TableHead>Nama</TableHead>
+                  <TableHead>Kontak</TableHead>
+                  <TableHead>Keahlian</TableHead>
+                  <TableHead>Kegiatan</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredVolunteers
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((v, index) => (
+                    <TableRow key={v.id}>
+                      <TableCell className="text-center font-medium">
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{v.nama}</div>
+                        <div className="text-xs text-muted-foreground">{formatDate(v.created_at || "")}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            <span className="truncate max-w-[150px]" title={v.email}>{v.email}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            <span>{v.phone}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{v.skill || "-"}</TableCell>
+                      <TableCell>
+                        {v.kegiatan_detail ? (
+                          <div className="flex flex-col text-sm">
+                            <span className="font-medium">{v.kegiatan_detail.nama}</span>
+                            <span className="text-xs text-muted-foreground">{formatDate(v.kegiatan_detail.tanggal)}</span>
+                          </div>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="accent">Diterima</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs px-2 border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+                            onClick={() => onToggleStatus(v)}
+                            title="Ubah ke Menunggu"
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Batal
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => onEdit(v)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => onDelete(v.id!, v.nama)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
 
-                  <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2 truncate">
-                      <Mail className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
-                      <span className="truncate">{v.email}</span>
+            {/* Pagination Controls */}
+            {filteredVolunteers.length > itemsPerPage && (
+              <div className="flex justify-center gap-2 py-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Sebelumnya
+                </Button>
+                <div className="flex items-center px-4 font-medium text-sm">
+                  Halaman {currentPage} dari {Math.ceil(filteredVolunteers.length / itemsPerPage)}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredVolunteers.length / itemsPerPage), p + 1))}
+                  disabled={currentPage >= Math.ceil(filteredVolunteers.length / itemsPerPage)}
+                >
+                  Selanjutnya
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {filteredVolunteers.map((v, index) => (
+              <motion.div
+                key={v.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="hover:shadow-cartoon transition-all h-full">
+                  <CardContent className="p-4 sm:p-5 space-y-2 sm:space-y-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-fredoka text-base sm:text-lg font-bold truncate">
+                          {v.nama}
+                        </h3>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">
+                          {v.created_at ? formatDate(v.created_at) : "-"}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={v.is_approved ? "accent" : "default"}
+                        className="text-[10px] sm:text-xs shrink-0"
+                      >
+                        {v.is_approved ? "Diterima" : "Menunggu"}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
-                      {v.phone}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
-                      <span className="truncate">{v.skill}</span>
-                    </div>
-                    {v.kegiatan_detail && (
+
+                    <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2 truncate">
+                        <Mail className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                        <span className="truncate">{v.email}</span>
+                      </div>
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
-                        <span className="truncate">
-                          {v.kegiatan_detail.nama} - {formatDate(v.kegiatan_detail.tanggal)}
-                        </span>
+                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                        {v.phone}
                       </div>
-                    )}
-                    {v.motivasi && v.motivasi !== "-" && (
-                      <div className="pt-2 border-t">
-                        <p className="text-[10px] sm:text-xs font-semibold mb-1">Motivasi:</p>
-                        <p className="text-[10px] sm:text-xs line-clamp-2">{v.motivasi}</p>
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                        <span className="truncate">{v.skill}</span>
                       </div>
-                    )}
-                  </div>
+                      {v.kegiatan_detail && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                          <span className="truncate">
+                            {v.kegiatan_detail.nama} - {formatDate(v.kegiatan_detail.tanggal)}
+                          </span>
+                        </div>
+                      )}
+                      {v.motivasi && v.motivasi !== "-" && (
+                        <div className="pt-2 border-t">
+                          <p className="text-[10px] sm:text-xs font-semibold mb-1">Motivasi:</p>
+                          <p className="text-[10px] sm:text-xs line-clamp-2">{v.motivasi}</p>
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
-                    {!v.is_approved && (
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-2">
+                      {!v.is_approved && (
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-emerald-400 hover:bg-emerald-500 h-9 sm:h-10 text-xs sm:text-sm"
+                          onClick={() => onApprove(v.id!)}
+                        >
+                          <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                          Terima
+                        </Button>
+                      )}
                       <Button
                         size="sm"
-                        className="flex-1 bg-emerald-400 hover:bg-emerald-500 h-9 sm:h-10 text-xs sm:text-sm"
-                        onClick={() => onApprove(v.id!)}
+                        variant="outline"
+                        className="h-9 sm:h-10 text-xs sm:text-sm px-3"
+                        onClick={() => onEdit(v)}
                       >
-                        <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                        Terima
+                        <Pencil className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-9 sm:h-10 text-xs sm:text-sm px-3"
-                      onClick={() => onEdit(v)}
-                    >
-                      <Pencil className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="h-9 sm:h-10 text-xs sm:text-sm px-3"
-                      onClick={() => onDelete(v.id!, v.nama)}
-                    >
-                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-9 sm:h-10 text-xs sm:text-sm px-3"
+                        onClick={() => onDelete(v.id!, v.nama)}
+                      >
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )
       ) : (
         <div className="text-center py-12 sm:py-16 text-muted-foreground">
           <Users className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 opacity-50" />
