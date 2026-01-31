@@ -147,7 +147,8 @@ export default function Cashflow() {
   const handleExport = () => {
     // Assuming backend is running on localhost:8000. 
     // Ideally this URL comes from env or api service configuration
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+    // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://be-dhaharan-278881327745.asia-southeast1.run.app/api';
     window.location.href = `${API_BASE_URL}/transaksi/export_excel/?group_by=${sortType}`;
   };
 

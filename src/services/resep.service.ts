@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://be-dhaharan-278881327745.asia-southeast1.run.app/api';
 
 // Types matching backend models
 export interface BahanResep {
@@ -188,7 +189,7 @@ class ResepService {
 
     // Step 2: Delete old related data
     const currentResep = await this.getResepById(id);
-    
+
     // Delete old bahan
     if (currentResep.bahan && currentResep.bahan.length > 0) {
       await Promise.all(
