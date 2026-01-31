@@ -38,7 +38,7 @@ export default function Login() {
     try {
       if (isLogin) {
         // Login Logic
-        const response = await fetch("http://127.0.0.1:8000/api/login/", {
+        const response = await fetch("https://be-dhaharan-278881327745.asia-southeast1.run.app/api/login/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
