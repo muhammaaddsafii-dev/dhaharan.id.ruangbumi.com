@@ -41,12 +41,6 @@ export function Footer() {
       color: "hover:bg-blue-600",
     },
     {
-      icon: Twitter,
-      href: "https://twitter.com/dhaharan_id",
-      label: "Twitter",
-      color: "hover:bg-sky-500",
-    },
-    {
       icon: Youtube,
       href: "https://youtube.com/@dhaharan",
       label: "YouTube",
@@ -173,7 +167,7 @@ export function Footer() {
                 className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-nunito text-sm group"
               >
                 <Mail className="w-4 h-4 group-hover:scale-110 transition-transform shrink-0" />
-                <span>hello@dhaharan.id</span>
+                <span>idhaharan@gmail.com</span>
               </a>
 
               <a
@@ -181,7 +175,7 @@ export function Footer() {
                 className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-nunito text-sm group"
               >
                 <Phone className="w-4 h-4 group-hover:scale-110 transition-transform shrink-0" />
-                <span>+62 812-3456-789</span>
+                <span>089521073153</span>
               </a>
 
               <span className="flex items-start gap-2 text-muted-foreground font-nunito text-sm">
