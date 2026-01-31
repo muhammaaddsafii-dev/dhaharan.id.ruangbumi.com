@@ -25,6 +25,8 @@ import PengurusPage from "./pages/Pengurus";
 
 const queryClient = new QueryClient();
 
+import ProtectedRoute from "./components/ProtectedRoute";
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -40,18 +42,25 @@ const App = () => (
             <Route path="/cashflow" element={<Cashflow />} />
             <Route path="/peta" element={<Peta />} />
           </Route>
-          <Route path="/dashboard" element={<Admin />} />
-          <Route path="/manage-resep" element={<ManageResep />} />
+
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Login />} />
-          <Route path="/AddCashflow" element={<AddCashflow />} />
-          <Route path="/activities" element={<Activities />} />
-          {/* <Route path="/settings" element={<Setting />} /> */}
+
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Admin />} />
+            <Route path="/manage-resep" element={<ManageResep />} />
+            <Route path="/AddCashflow" element={<AddCashflow />} />
+            <Route path="/activities" element={<Activities />} />
+            <Route path="/volunteersview" element={<VolunteersView />} />
+            <Route path="/pengurus" element={<PengurusPage />} />
+            <Route path="/donationsview" element={<DonationsView />} />
+            {/* <Route path="/settings" element={<Setting />} /> */}
+          </Route>
+
           <Route path="/donationsection" element={<DonationSection />} />
           <Route path="/volunteersection" element={<VolunteerSection />} />
-          <Route path="/volunteersview" element={<VolunteersView />} />
-          <Route path="/donationsview" element={<DonationsView />} />
-          <Route path="/pengurus" element={<PengurusPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -25,9 +25,6 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
     if (!isLogin && formData.password !== formData.confirmPassword) {
       toast({
         title: "Error",
@@ -38,19 +35,49 @@ export default function Login() {
       return;
     }
 
-    toast({
-      title: isLogin ? "Login Berhasil!" : "Registrasi Berhasil!",
-      description: isLogin 
-        ? "Selamat datang kembali di Dhaharan.id" 
-        : "Akun Anda berhasil dibuat. Silakan login.",
-    });
+    try {
+      if (isLogin) {
+        // Login Logic
+        const response = await fetch("http://127.0.0.1:8000/api/login/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: formData.email,
+            password: formData.password,
+          }),
+        });
 
-    setIsLoading(false);
-    if (!isLogin) {
-      setIsLogin(true);
-      setFormData({ name: "", email: "", password: "", confirmPassword: "" });
-    } else {
-      navigate("/dashboard");
+        const data = await response.json();
+
+        if (response.ok) {
+          localStorage.setItem("token", data.token);
+          // Store user info if needed, for now just token is enough for auth check
+          toast({
+            title: "Login Berhasil!",
+            description: "Selamat datang kembali di Dhaharan.id",
+          });
+          navigate("/dashboard");
+        } else {
+          throw new Error(data.non_field_errors ? data.non_field_errors[0] : "Login gagal");
+        }
+      } else {
+        // Registration Logic (Placeholder for now as backend implementation wasn't requested for registration yet)
+        // You might want to implement registration API call here similarly
+        toast({
+          title: "Info",
+          description: "Registrasi belum tersedia saat ini. Silakan hubungi admin.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Login Gagal",
+        description: error.message || "Terjadi kesalahan saat login.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -68,18 +95,18 @@ export default function Login() {
         <Card className="shadow-cartoon-lg">
           <CardHeader className="text-center">
             <Link to="/" className="inline-flex justify-center mb-4">
-            <img
-              src="https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/logo-dhaharan.png"
-              alt="Logo"
-              className="w-10 h-10 rounded-xl border-2 border-foreground shadow-cartoon-sm object-cover"
-            />
+              <img
+                src="https://s3.ap-southeast-1.amazonaws.com/cdn.ruangbumi.com/assets/dhaharan/logo-dhaharan.png"
+                alt="Logo"
+                className="w-10 h-10 rounded-xl border-2 border-foreground shadow-cartoon-sm object-cover"
+              />
             </Link>
             <CardTitle className="text-2xl">
               {isLogin ? "Selamat Datang!" : "Bergabung Sekarang"}
             </CardTitle>
             <CardDescription>
-              {isLogin 
-                ? "Masuk ke akun Dhaharan.id Anda" 
+              {isLogin
+                ? "Masuk ke akun Dhaharan.id Anda"
                 : "Buat akun untuk bergabung dengan komunitas"}
             </CardDescription>
           </CardHeader>
@@ -161,12 +188,12 @@ export default function Login() {
 
               {isLogin && (
                 <div className="flex justify-end">
-                  <button
+                  {/* <button
                     type="button"
                     className="text-sm text-highlight hover:underline font-nunito"
                   >
                     Lupa password?
-                  </button>
+                  </button> */}
                 </div>
               )}
 
@@ -190,8 +217,8 @@ export default function Login() {
 
             <div className="mt-6 text-center">
               <p className="font-nunito text-sm text-muted-foreground">
-                {isLogin ? "Belum punya akun?" : "Sudah punya akun?"}{" "}
-                <button
+                {/* {isLogin ? "Belum punya akun?" : "Sudah punya akun?"}{" "} */}
+                {/* <button
                   type="button"
                   onClick={() => {
                     setIsLogin(!isLogin);
@@ -200,7 +227,7 @@ export default function Login() {
                   className="text-highlight font-semibold hover:underline"
                 >
                   {isLogin ? "Daftar sekarang" : "Masuk"}
-                </button>
+                </button> */}
               </p>
             </div>
           </CardContent>
