@@ -418,14 +418,22 @@ export default function Cashflow() {
                   )}
 
                   {filter === "all" ? (
-                    <div className="rounded-md border">
-                      <Table>
+                    <div className="rounded-md border overflow-x-auto">
+                      <Table className="text-[11px] sm:text-sm">
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Tanggal</TableHead>
-                            <TableHead>Nama Transaksi</TableHead>
-                            <TableHead>Kategori</TableHead>
-                            <TableHead className="text-right">Jumlah</TableHead>
+                            <TableHead className="whitespace-nowrap px-2 sm:px-4 py-1.5 sm:py-3 h-auto text-[10px] sm:text-sm">
+                              Tanggal
+                            </TableHead>
+                            <TableHead className="min-w-[100px] sm:min-w-[150px] px-2 sm:px-4 py-1.5 sm:py-3 h-auto text-[10px] sm:text-sm">
+                              Nama Transaksi
+                            </TableHead>
+                            <TableHead className="px-2 sm:px-4 py-1.5 sm:py-3 h-auto text-[10px] sm:text-sm">
+                              Kategori
+                            </TableHead>
+                            <TableHead className="text-right whitespace-nowrap px-2 sm:px-4 py-1.5 sm:py-3 h-auto text-[10px] sm:text-sm">
+                              Jumlah
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -433,31 +441,42 @@ export default function Cashflow() {
                             const isIncome =
                               transaction.tipe_transaksi_detail?.nama.toLowerCase() ===
                               "pemasukan";
+                            const date = new Date(transaction.tanggal);
+                            const shortDate = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear().toString().slice(-2)}`;
                             return (
                               <TableRow key={transaction.id}>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                                    <span>{formatDate(transaction.tanggal)}</span>
+                                <TableCell className="whitespace-nowrap px-2 sm:px-4 py-1.5 sm:py-3">
+                                  <div className="flex items-center gap-1 sm:gap-2">
+                                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground hidden sm:block" />
+                                    <span className="hidden sm:inline">{formatDate(transaction.tanggal)}</span>
+                                    <span className="inline sm:hidden text-[10px]">{shortDate}</span>
                                   </div>
                                 </TableCell>
-                                <TableCell className="font-medium">
-                                  {transaction.nama}
+                                <TableCell className="font-medium min-w-[100px] sm:min-w-[150px] px-2 sm:px-4 py-1.5 sm:py-3">
+                                  <div className="truncate max-w-[100px] sm:max-w-none">
+                                    {transaction.nama}
+                                  </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="px-2 sm:px-4 py-1.5 sm:py-3">
                                   <Badge
                                     variant="outline"
-                                    className="text-xs font-normal"
+                                    className="text-[9px] sm:text-xs font-normal whitespace-nowrap px-1 py-0.5 sm:px-2 sm:py-0.5"
                                   >
                                     {transaction.tipe_transaksi_detail?.nama || "-"}
                                   </Badge>
                                 </TableCell>
                                 <TableCell
-                                  className={`text-right font-bold ${isIncome ? "text-accent" : "text-highlight"
+                                  className={`text-right font-bold whitespace-nowrap px-2 sm:px-4 py-1.5 sm:py-3 ${isIncome ? "text-accent" : "text-highlight"
                                     }`}
                                 >
-                                  {isIncome ? "+" : "-"}
-                                  {formatCurrency(Number(transaction.jumlah))}
+                                  <span className="hidden sm:inline">
+                                    {isIncome ? "+" : "-"}
+                                    {formatCurrency(Number(transaction.jumlah))}
+                                  </span>
+                                  <span className="inline sm:hidden text-[10px]">
+                                    {isIncome ? "+" : "-"}
+                                    {(Number(transaction.jumlah) / 1000).toFixed(0)}k
+                                  </span>
                                 </TableCell>
                               </TableRow>
                             );
@@ -573,49 +592,58 @@ export default function Cashflow() {
           >
             {/* Bar chart - Responsive */}
             <Card className="shadow-lg">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="font-fredoka text-base sm:text-lg">
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="font-fredoka text-sm sm:text-lg">
                   Grafik Cashflow Per Bulan
                 </CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                   Menampilkan 6 bulan terakhir
                 </p>
               </CardHeader>
 
-              <CardContent className="p-4 sm:p-6 pt-0">
+              <CardContent className="p-3 sm:p-6 pt-0">
                 {monthlyData.length > 0 ? (
-                  <div className="w-full h-64 sm:h-80">
+                  <div className="w-full h-48 sm:h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyData}>
-                        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <BarChart data={monthlyData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+                        <XAxis
+                          dataKey="month"
+                          tick={{ fontSize: 9 }}
+                          tickLine={false}
+                        />
                         <YAxis
                           tickFormatter={(v) => (v / 1000000).toFixed(0) + "jt"}
-                          tick={{ fontSize: 11 }}
+                          tick={{ fontSize: 9 }}
+                          tickLine={false}
+                          width={35}
                         />
                         <Tooltip
                           formatter={(v) => formatCurrency(v as number)}
-                          contentStyle={{ fontSize: "12px" }}
+                          contentStyle={{ fontSize: "10px" }}
                         />
-                        <Legend wrapperStyle={{ fontSize: "12px" }} />
+                        <Legend
+                          wrapperStyle={{ fontSize: "10px" }}
+                          iconSize={10}
+                        />
 
                         <Bar
                           dataKey="income"
                           name="Pemasukan"
                           fill="#86a9cf"
-                          radius={[6, 6, 0, 0]}
+                          radius={[4, 4, 0, 0]}
                         />
                         <Bar
                           dataKey="expense"
                           name="Pengeluaran"
                           fill="#e37749"
-                          radius={[6, 6, 0, 0]}
+                          radius={[4, 4, 0, 0]}
                         />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <p className="text-sm text-muted-foreground">Belum ada data transaksi</p>
+                  <div className="text-center py-8 sm:py-12">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Belum ada data transaksi</p>
                   </div>
                 )}
               </CardContent>
