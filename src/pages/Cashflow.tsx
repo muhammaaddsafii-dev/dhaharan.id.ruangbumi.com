@@ -17,6 +17,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -50,7 +58,7 @@ export default function Cashflow() {
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
   const [balance, setBalance] = useState(0);
-  
+
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,7 +73,7 @@ export default function Cashflow() {
           transaksiAPI.getAll(),
           transaksiAPI.getSummary(),
         ]);
-        
+
         setTransactions(transaksiData);
         setTotalIncome(Number(summary.total_pemasukan));
         setTotalExpense(Number(summary.total_pengeluaran));
@@ -88,26 +96,26 @@ export default function Cashflow() {
   // Generate monthly data untuk chart dari transactions
   const generateMonthlyData = () => {
     const monthlyMap = new Map<string, { income: number; expense: number }>();
-    
+
     transactions.forEach((t) => {
       const date = new Date(t.tanggal);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthName = date.toLocaleDateString('id-ID', { month: 'short' });
-      
+
       if (!monthlyMap.has(monthKey)) {
         monthlyMap.set(monthKey, { income: 0, expense: 0 });
       }
-      
+
       const data = monthlyMap.get(monthKey)!;
       const isIncome = t.tipe_transaksi_detail?.nama.toLowerCase() === 'pemasukan';
-      
+
       if (isIncome) {
         data.income += Number(t.jumlah);
       } else {
         data.expense += Number(t.jumlah);
       }
     });
-    
+
     // Convert to array and sort by date
     const sortedData = Array.from(monthlyMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
@@ -121,17 +129,17 @@ export default function Cashflow() {
           expense: data.expense,
         };
       });
-    
+
     return sortedData;
   };
 
   const monthlyData = generateMonthlyData();
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', { 
+    return date.toLocaleDateString('id-ID', {
       day: 'numeric',
-      month: 'long', 
-      year: 'numeric' 
+      month: 'long',
+      year: 'numeric'
     });
   };
 
@@ -327,7 +335,7 @@ export default function Cashflow() {
                       }}
                     />
 
-                    <Button
+                    {/* <Button
                       size="sm"
                       variant="accent"
                       onClick={exportPDF}
@@ -335,7 +343,7 @@ export default function Cashflow() {
                     >
                       <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                       PDF
-                    </Button>
+                    </Button> */}
                   </div>
 
                   {/* Filter Buttons - Mobile Optimized */}
@@ -409,74 +417,118 @@ export default function Cashflow() {
                     </p>
                   )}
 
-                  {paginatedTransactions.map((transaction, i) => {
-                    const isIncome = transaction.tipe_transaksi_detail?.nama.toLowerCase() === "pemasukan";
-                    
-                    return (
-                    <motion.div
-                      key={transaction.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-xl bg-secondary/50 border-2 border-foreground/10"
-                    >
-                      <div className="flex items-start sm:items-center gap-3">
-                        <div
-                          className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl flex items-center justify-center border-2 border-foreground shadow-cartoon-sm ${
-                            isIncome
-                              ? "bg-accent"
-                              : "bg-highlight"
-                          }`}
-                        >
-                          {isIncome ? (
-                            <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6" />
-                          ) : (
-                            <ArrowDownRight className="w-5 h-5 sm:w-6 sm:h-6" />
-                          )}
-                        </div>
+                  {filter === "all" ? (
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Tanggal</TableHead>
+                            <TableHead>Nama Transaksi</TableHead>
+                            <TableHead>Kategori</TableHead>
+                            <TableHead className="text-right">Jumlah</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedTransactions.map((transaction) => {
+                            const isIncome =
+                              transaction.tipe_transaksi_detail?.nama.toLowerCase() ===
+                              "pemasukan";
+                            return (
+                              <TableRow key={transaction.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                                    <span>{formatDate(transaction.tanggal)}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="font-medium">
+                                  {transaction.nama}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs font-normal"
+                                  >
+                                    {transaction.tipe_transaksi_detail?.nama || "-"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell
+                                  className={`text-right font-bold ${isIncome ? "text-accent" : "text-highlight"
+                                    }`}
+                                >
+                                  {isIncome ? "+" : "-"}
+                                  {formatCurrency(Number(transaction.jumlah))}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    paginatedTransactions.map((transaction, i) => {
+                      const isIncome =
+                        transaction.tipe_transaksi_detail?.nama.toLowerCase() ===
+                        "pemasukan";
 
-                        <div className="flex-1 min-w-0">
-                          <p className="font-fredoka font-semibold text-sm sm:text-base truncate">
-                            {transaction.nama}
-                          </p>
-                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>{formatDate(transaction.tanggal)}</span>
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] sm:text-xs px-1.5 py-0"
+                      return (
+                        <motion.div
+                          key={transaction.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-xl bg-secondary/50 border-2 border-foreground/10"
+                        >
+                          <div className="flex items-start sm:items-center gap-3">
+                            <div
+                              className={`w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl flex items-center justify-center border-2 border-foreground shadow-cartoon-sm ${isIncome ? "bg-accent" : "bg-highlight"
+                                }`}
                             >
-                              {transaction.tipe_transaksi_detail?.nama || "-"}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
+                              {isIncome ? (
+                                <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                              ) : (
+                                <ArrowDownRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                              )}
+                            </div>
 
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-1">
-                        <div
-                          className={`font-fredoka font-bold text-base sm:text-lg ${
-                            isIncome
-                              ? "text-accent"
-                              : "text-highlight"
-                          }`}
-                        >
-                          {isIncome ? "+" : "-"}
-                          {formatCurrency(Number(transaction.jumlah)).replace(
-                            /\s/g,
-                            ""
-                          )}
-                        </div>
-                        <div className="text-[10px] sm:text-xs text-muted-foreground">
-                          {isIncome
-                            ? "Pemasukan"
-                            : "Pengeluaran"}
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                  })}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-fredoka font-semibold text-sm sm:text-base truncate">
+                                {transaction.nama}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>{formatDate(transaction.tanggal)}</span>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] sm:text-xs px-1.5 py-0"
+                                >
+                                  {transaction.tipe_transaksi_detail?.nama || "-"}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-1">
+                            <div
+                              className={`font-fredoka font-bold text-base sm:text-lg ${isIncome ? "text-accent" : "text-highlight"
+                                }`}
+                            >
+                              {isIncome ? "+" : "-"}
+                              {formatCurrency(Number(transaction.jumlah)).replace(
+                                /\s/g,
+                                ""
+                              )}
+                            </div>
+                            <div className="text-[10px] sm:text-xs text-muted-foreground">
+                              {isIncome ? "Pemasukan" : "Pengeluaran"}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  )}
                 </div>
 
                 {/* Pagination - Responsive */}
