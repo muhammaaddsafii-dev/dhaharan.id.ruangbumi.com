@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { KegiatanAPI, Pengurus } from "@/types";
 import { kegiatanAPI, pengurusAPI } from "@/services/api";
+import dhaharanBg from "@/assets/dhaharanbg.jpg";
 
 
 
@@ -110,16 +111,17 @@ export default function Index() {
   return (
     <div className="min-h-screen">
       {/* Hero Section with Background Image */}
-      <section className="relative py-20 lg:py-32 overflow-hidden">
+      <section className="relative min-h-screen flex items-center py-20 lg:py-32 overflow-hidden">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           {/* Background Image */}
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: "url('src/assets/hero-bg.jpg')",
+              backgroundImage: `url(${dhaharanBg})`,
             }}
           />
+          <div className="absolute inset-0 bg-white/60" />
         </div>
 
         <div className="container mx-auto px-4 relative z-10">
@@ -138,7 +140,7 @@ export default function Index() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="font-fredoka text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
+              className="font-fredoka text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight text-slate-900"
             >
               Bersama{" "}
               <span className="text-highlight relative inline-block">
@@ -164,7 +166,7 @@ export default function Index() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="font-nunito text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto"
+              className="font-nunito text-lg md:text-xl text-slate-950 mb-8 max-w-2xl mx-auto font-semibold bg-white/50 backdrop-blur-sm p-4 rounded-xl shadow-sm"
             >
               Komunitas sosial yang berfokus pada kegiatan dan agenda sosial
               untuk membangun kebersamaan, kepedulian, dan semangat berbagi.
@@ -410,8 +412,8 @@ export default function Index() {
                       key={idx}
                       onClick={() => setCurrent(idx)}
                       className={`transition-all rounded-full ${current === idx
-                          ? "w-8 h-3 bg-highlight shadow-md"
-                          : "w-3 h-3 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                        ? "w-8 h-3 bg-highlight shadow-md"
+                        : "w-3 h-3 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                         }`}
                       aria-label={`Go to slide ${idx + 1}`}
                     />
