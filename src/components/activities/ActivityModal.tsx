@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Calendar, MapPin, Users, Camera, Sparkles, Upload, Image as ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Calendar, MapPin, Users, Camera, Sparkles, Upload, Image as ImageIcon, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,6 +56,7 @@ export default function ActivityModal({
 
   // Location picker state
   const [selectedCoordinates, setSelectedCoordinates] = useState<[number, number] | null>(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   // Slider state for view mode
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -198,6 +199,74 @@ export default function ActivityModal({
       ...formData,
       location: address,
     });
+  };
+
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Error",
+        description: "Browser Anda tidak mendukung geolokasi.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDetectingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const coords: [number, number] = [latitude, longitude];
+
+        setSelectedCoordinates(coords);
+
+        // Reverse geocoding to get address
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          const address = data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+          setFormData(prev => ({
+            ...prev,
+            location: address
+          }));
+
+          toast({
+            title: "Lokasi Ditemukan",
+            description: "Lokasi berhasil diperbarui sesuai posisi Anda.",
+          });
+        } catch (error) {
+          console.error("Error reverse geocoding:", error);
+          setFormData(prev => ({
+            ...prev,
+            location: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+          }));
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (error) => {
+        console.error("Error detecting location:", error);
+        let errorMessage = "Gagal mendeteksi lokasi.";
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = "Izin lokasi ditolak. Silakan aktifkan izin lokasi browser.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMessage = "Informasi lokasi tidak tersedia.";
+        } else if (error.code === error.TIMEOUT) {
+          errorMessage = "Waktu permintaan lokasi habis.";
+        }
+
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setDetectingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   // Slider navigation functions
@@ -573,8 +642,8 @@ export default function ActivityModal({
                                   key={index}
                                   onClick={() => setCurrentImageIndex(index)}
                                   className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${index === currentImageIndex
-                                      ? 'border-accent ring-2 ring-accent/50'
-                                      : 'border-foreground/20 hover:border-foreground/40'
+                                    ? 'border-accent ring-2 ring-accent/50'
+                                    : 'border-foreground/20 hover:border-foreground/40'
                                     }`}
                                 >
                                   <img
@@ -695,9 +764,26 @@ export default function ActivityModal({
                           Lokasi <span className="text-destructive">*</span>
                         </label>
                         <div className="space-y-2">
-                          <p className="text-xs text-muted-foreground">
-                            💡 Klik pada peta untuk memilih lokasi kegiatan
-                          </p>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs text-muted-foreground">
+                              💡 Klik pada peta untuk memilih lokasi kegiatan
+                            </p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleDetectLocation}
+                              disabled={detectingLocation}
+                              className="h-8 text-xs gap-2"
+                            >
+                              {detectingLocation ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <MapPin className="w-3 h-3" />
+                              )}
+                              {detectingLocation ? "Mendeteksi..." : "Gunakan Lokasi Saya"}
+                            </Button>
+                          </div>
                           <LocationPicker
                             center={selectedCoordinates || [-7.7956, 110.3695]}
                             zoom={13}
