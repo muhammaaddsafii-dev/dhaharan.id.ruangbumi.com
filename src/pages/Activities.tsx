@@ -71,6 +71,7 @@ const convertAPIToActivity = (apiData: KegiatanAPI): Activity => {
     status: status,
     image: imageUrl,
     images: imageUrls, // Add all images
+    photos: apiData.foto || [], // Add full photo objects
     createdAt: apiData.created_at?.split("T")[0] || "",
     coordinates: coordinates,
     status_kegiatan: apiData.status_kegiatan, // Save original ID (without _id suffix)

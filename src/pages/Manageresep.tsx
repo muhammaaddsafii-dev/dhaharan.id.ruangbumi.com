@@ -140,10 +140,10 @@ export default function ManageResep() {
   };
 
   // Filter recipes - add safety check
-  const filteredRecipes = Array.isArray(recipes) 
+  const filteredRecipes = Array.isArray(recipes)
     ? recipes.filter((recipe) =>
-        recipe.judul.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      recipe.judul.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : [];
 
   // Open dialog for add/edit
@@ -153,7 +153,7 @@ export default function ManageResep() {
       try {
         const fullRecipe = await resepService.getResepById(recipe.id!);
         setEditingRecipe(fullRecipe);
-        
+
         // Map backend data to form
         setFormData({
           id: fullRecipe.id,
@@ -216,12 +216,12 @@ export default function ManageResep() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
-      
+
       // Validate file types
       const invalidFiles = filesArray.filter(
         file => !['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)
       );
-      
+
       if (invalidFiles.length > 0) {
         toast({
           title: "Error",
@@ -230,7 +230,7 @@ export default function ManageResep() {
         });
         return;
       }
-      
+
       // Validate file sizes (5MB max)
       const oversizedFiles = filesArray.filter(file => file.size > 5 * 1024 * 1024);
       if (oversizedFiles.length > 0) {
@@ -241,7 +241,7 @@ export default function ManageResep() {
         });
         return;
       }
-      
+
       setFormData({ ...formData, selectedFiles: filesArray });
     }
   };
@@ -312,25 +312,25 @@ export default function ManageResep() {
       if (editingRecipe) {
         // Update existing
         savedResep = await resepService.updateResep(editingRecipe.id!, payload);
-        
+
         // Delete photos that were marked for deletion
         if (formData.deletedPhotoIds.length > 0) {
           await Promise.all(
-            formData.deletedPhotoIds.map(photoId => 
+            formData.deletedPhotoIds.map(photoId =>
               resepService.deleteFotoResep(photoId)
             )
           );
         }
-        
+
         // Upload new photos if files were selected
         if (formData.selectedFiles.length > 0) {
           await Promise.all(
-            formData.selectedFiles.map(file => 
-              resepService.uploadAndAttachFoto(savedResep.id!, file)
+            formData.selectedFiles.map(file =>
+              resepService.uploadAndAttachFoto(savedResep.id!, file, savedResep.judul)
             )
           );
         }
-        
+
         toast({
           title: "Berhasil!",
           description: "Resep berhasil diperbarui",
@@ -338,16 +338,16 @@ export default function ManageResep() {
       } else {
         // Create new
         savedResep = await resepService.createResep(payload);
-        
+
         // Upload photos if files were selected
         if (formData.selectedFiles.length > 0) {
           await Promise.all(
-            formData.selectedFiles.map(file => 
-              resepService.uploadAndAttachFoto(savedResep.id!, file)
+            formData.selectedFiles.map(file =>
+              resepService.uploadAndAttachFoto(savedResep.id!, file, savedResep.judul)
             )
           );
         }
-        
+
         toast({
           title: "Berhasil!",
           description: "Resep baru berhasil ditambahkan",
@@ -400,8 +400,8 @@ export default function ManageResep() {
         field === "bahan"
           ? [...formData.bahan, { nama: "", takaran: "" }]
           : field === "nutrisi"
-          ? [...formData.nutrisi, { label: "", nilai: "" }]
-          : [...formData[field], ""],
+            ? [...formData.nutrisi, { label: "", nilai: "" }]
+            : [...formData[field], ""],
     });
   };
 
@@ -670,7 +670,7 @@ export default function ManageResep() {
                 <label className="text-sm font-medium mb-2 block">
                   Foto Resep
                 </label>
-                
+
                 {/* Existing photos preview */}
                 {formData.existingPhotos.length > 0 && (
                   <div className="mb-2">
@@ -696,8 +696,8 @@ export default function ManageResep() {
                               // Remove from display and add to deleted list
                               const newPhotos = formData.existingPhotos.filter((_, i) => i !== index);
                               const newDeletedIds = [...formData.deletedPhotoIds, photo.id];
-                              setFormData({ 
-                                ...formData, 
+                              setFormData({
+                                ...formData,
                                 existingPhotos: newPhotos,
                                 deletedPhotoIds: newDeletedIds
                               });
@@ -732,7 +732,7 @@ export default function ManageResep() {
                     <Upload className="w-4 h-4" />
                   </Button>
                 </div>
-                
+
                 {/* Selected files preview */}
                 {formData.selectedFiles.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -758,7 +758,7 @@ export default function ManageResep() {
                     ))}
                   </div>
                 )}
-                
+
                 <p className="text-xs text-muted-foreground mt-1">
                   Format: JPEG, PNG, WEBP. Ukuran max: 5MB per file
                 </p>
@@ -1067,15 +1067,15 @@ export default function ManageResep() {
           </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsDialogOpen(false)}
               disabled={isSaving}
             >
               Batal
             </Button>
-            <Button 
-              onClick={handleSave} 
+            <Button
+              onClick={handleSave}
               className="gap-2"
               disabled={isSaving}
             >

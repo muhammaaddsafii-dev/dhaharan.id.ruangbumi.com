@@ -289,10 +289,14 @@ class ResepService {
   }
 
   // Upload foto to S3
-  async uploadFoto(file: File): Promise<{ url: string; filename: string }> {
+  async uploadFoto(file: File, title?: string): Promise<{ url: string; filename: string }> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', 'resep'); // Specify folder for resep
+
+    if (title) {
+      formData.append('title', title);
+    }
 
     const response = await this.axiosInstance.post('/upload/s3/', formData, {
       headers: {
@@ -319,8 +323,8 @@ class ResepService {
   }
 
   // Upload and attach foto to resep
-  async uploadAndAttachFoto(resepId: number, file: File): Promise<FotoResep> {
-    const uploadResult = await this.uploadFoto(file);
+  async uploadAndAttachFoto(resepId: number, file: File, title?: string): Promise<FotoResep> {
+    const uploadResult = await this.uploadFoto(file, title);
     return this.createFotoResep(resepId, uploadResult.url, uploadResult.filename);
   }
 

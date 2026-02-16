@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, ModalMode } from "@/types";
 import { formatDate } from "@/utils/formatters";
 import { kegiatanAPI, fotoKegiatanAPI, jenisKegiatanAPI, statusKegiatanAPI, uploadToS3 } from "@/services/api";
-import type { JenisKegiatan, StatusKegiatan } from "@/types";
+import type { JenisKegiatan, StatusKegiatan, FotoKegiatan } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import LocationPicker from "@/components/LocationPicker";
 import LocationViewer from "@/components/LocationViewer";
@@ -43,18 +43,20 @@ export default function ActivityModal({
     status: "upcoming" as Activity["status"],
     image: "",
   });
-  
+
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<FotoKegiatan[]>([]);
+  const [deletedPhotoIds, setDeletedPhotoIds] = useState<number[]>([]);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [jenisKegiatanList, setJenisKegiatanList] = useState<JenisKegiatan[]>([]);
   const [statusKegiatanList, setStatusKegiatanList] = useState<StatusKegiatan[]>([]);
   const [selectedJenisKegiatan, setSelectedJenisKegiatan] = useState<number | string>("");
   const [selectedStatusKegiatan, setSelectedStatusKegiatan] = useState<number | string>("");
-  
+
   // Location picker state
   const [selectedCoordinates, setSelectedCoordinates] = useState<[number, number] | null>(null);
-  
+
   // Slider state for view mode
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -72,7 +74,7 @@ export default function ActivityModal({
         console.error("Error fetching metadata:", error);
       }
     };
-    
+
     if (isOpen) {
       fetchMetadata();
     }
@@ -89,7 +91,7 @@ export default function ActivityModal({
         status: activity.status,
         image: activity.image || "",
       });
-      
+
       // Set jenis kegiatan and status kegiatan from activity data
       if (activity.jenis_kegiatan) {
         setSelectedJenisKegiatan(activity.jenis_kegiatan);
@@ -97,21 +99,27 @@ export default function ActivityModal({
       if (activity.status_kegiatan) {
         setSelectedStatusKegiatan(activity.status_kegiatan);
       }
-      
-      // Reset images first to avoid showing old images
+
+      // Reset images first
       setUploadedImages([]);
       setSelectedFiles([]);
-      
-      // Then load new images
-      if (activity.images && activity.images.length > 0) {
+      setDeletedPhotoIds([]);
+      setExistingPhotos([]);
+
+      // Load photos
+      if (activity.photos && activity.photos.length > 0) {
+        setExistingPhotos(activity.photos);
+        setUploadedImages(activity.photos.map(p => p.file_path));
+      } else if (activity.images && activity.images.length > 0) {
+        // Fallback for images array (without IDs)
         setUploadedImages(activity.images);
       } else if (activity.image) {
         setUploadedImages([activity.image]);
       }
-      
+
       // Reset slider index
       setCurrentImageIndex(0);
-      
+
       // Use coordinates from activity if available
       if (activity.coordinates) {
         setSelectedCoordinates(activity.coordinates);
@@ -135,6 +143,8 @@ export default function ActivityModal({
       });
       setSelectedFiles([]);
       setUploadedImages([]);
+      setExistingPhotos([]);
+      setDeletedPhotoIds([]);
       setSelectedCoordinates(null);
       setCurrentImageIndex(0);
       // Set default values for new activity
@@ -151,7 +161,7 @@ export default function ActivityModal({
     if (e.target.files) {
       const files = Array.from(e.target.files);
       setSelectedFiles(prev => [...prev, ...files]);
-      
+
       // Preview images
       files.forEach(file => {
         const reader = new FileReader();
@@ -164,10 +174,24 @@ export default function ActivityModal({
   };
 
   const removeImage = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    // Check if it's an existing photo or a new file
+    if (index < existingPhotos.length) {
+      // It's an existing photo
+      const photoToDelete = existingPhotos[index];
+      if (photoToDelete.id) {
+        setDeletedPhotoIds(prev => [...prev, photoToDelete.id!]);
+      }
+      setExistingPhotos(prev => prev.filter((_, i) => i !== index));
+    } else {
+      // It's a new file
+      const newFileIndex = index - existingPhotos.length;
+      setSelectedFiles(prev => prev.filter((_, i) => i !== newFileIndex));
+    }
+
+    // Always remove from uploadedImages (visual representation)
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
-  
+
   const handleLocationSelect = (lat: number, lng: number, address: string) => {
     setSelectedCoordinates([lat, lng]);
     setFormData({
@@ -178,20 +202,20 @@ export default function ActivityModal({
 
   // Slider navigation functions
   const goToPrevImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === 0 ? uploadedImages.length - 1 : prev - 1
     );
   };
 
   const goToNextImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === uploadedImages.length - 1 ? 0 : prev + 1
     );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate coordinates selected
     if (!selectedCoordinates) {
       toast({
@@ -201,33 +225,33 @@ export default function ActivityModal({
       });
       return;
     }
-    
+
     setUploading(true);
 
     try {
       // Use selectedStatusKegiatan directly if it's already a number
       // Otherwise try to map from formData.status
       let statusId = selectedStatusKegiatan;
-      
+
       // If selectedStatusKegiatan is empty string or not set, try to find from formData.status
       if (!statusId || statusId === "") {
         if (statusKegiatanList.length > 0) {
           const statusMapping: { [key: string]: string } = {
             "upcoming": "akan datang",
-            "ongoing": "berlangsung", 
+            "ongoing": "berlangsung",
             "completed": "selesai"
           };
-          
-          const foundStatus = statusKegiatanList.find(s => 
+
+          const foundStatus = statusKegiatanList.find(s =>
             s.nama.toLowerCase().includes(statusMapping[formData.status])
           );
-          
+
           if (foundStatus) {
             statusId = foundStatus.id;
           }
         }
       }
-      
+
       // Convert to number if it's still string
       const finalStatusId = typeof statusId === 'string' ? parseInt(statusId) : statusId;
       const finalJenisId = typeof selectedJenisKegiatan === 'string' ? parseInt(selectedJenisKegiatan) : selectedJenisKegiatan;
@@ -238,7 +262,7 @@ export default function ActivityModal({
         coordinates: [number, number];
       } = {
         type: "Point",
-        coordinates: selectedCoordinates 
+        coordinates: selectedCoordinates
           ? [selectedCoordinates[1], selectedCoordinates[0]] as [number, number] // GeoJSON format: [lng, lat]
           : [110.3695, -7.7956] as [number, number] // Default: Yogyakarta
       };
@@ -257,16 +281,16 @@ export default function ActivityModal({
 
         // Upload photos if any
         if (selectedFiles.length > 0 && newKegiatan.id) {
-        // Upload each file
+          // Upload each file
           for (const file of selectedFiles) {
-          const formData = new FormData();
-          formData.append('kegiatan', newKegiatan.id.toString());
-          formData.append('file_path', file);
-          formData.append('file_name', file.name);
-          
-          await fotoKegiatanAPI.create(formData);
+            const formData = new FormData();
+            formData.append('kegiatan', newKegiatan.id.toString());
+            formData.append('file_path', file);
+            formData.append('file_name', file.name);
+
+            await fotoKegiatanAPI.create(formData);
+          }
         }
-      }
 
       } else if (mode === "edit" && activity) {
         // Update existing kegiatan
@@ -280,6 +304,11 @@ export default function ActivityModal({
           status_kegiatan: finalStatusId,
         });
 
+        // Delete removed photos
+        if (deletedPhotoIds.length > 0) {
+          await Promise.all(deletedPhotoIds.map(id => fotoKegiatanAPI.delete(id)));
+        }
+
         // Only upload new photos if any, don't delete existing ones
         if (selectedFiles.length > 0) {
           // Upload new photos
@@ -288,7 +317,7 @@ export default function ActivityModal({
             formData.append('kegiatan', activity.id);
             formData.append('file_path', file);
             formData.append('file_name', file.name);
-            
+
             await fotoKegiatanAPI.create(formData);
           }
         }
@@ -296,7 +325,7 @@ export default function ActivityModal({
 
       // Call parent's onSave
       onSave(formData);
-      
+
     } catch (error) {
       console.error("Error saving activity:", error);
       toast({
@@ -345,8 +374,8 @@ export default function ActivityModal({
                       {mode === "create"
                         ? "Tambah Kegiatan"
                         : mode === "edit"
-                        ? "Edit Kegiatan"
-                        : "Detail Kegiatan"}
+                          ? "Edit Kegiatan"
+                          : "Detail Kegiatan"}
                     </h2>
                     <p className="text-xs text-muted-foreground hidden sm:block">
                       {isViewMode
@@ -492,7 +521,7 @@ export default function ActivityModal({
                         <label className="block text-sm font-semibold mb-2.5">
                           Foto Kegiatan
                         </label>
-                        
+
                         {/* Image Slider */}
                         <div className="relative rounded-xl border-2 border-foreground/10 overflow-hidden bg-secondary/30">
                           {/* Main Image */}
@@ -509,7 +538,7 @@ export default function ActivityModal({
                                 transition={{ duration: 0.3 }}
                               />
                             </AnimatePresence>
-                            
+
                             {/* Navigation Arrows - only show if more than 1 image */}
                             {uploadedImages.length > 1 && (
                               <>
@@ -527,7 +556,7 @@ export default function ActivityModal({
                                 </button>
                               </>
                             )}
-                            
+
                             {/* Image Counter */}
                             {uploadedImages.length > 1 && (
                               <div className="absolute bottom-3 right-3 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-medium border border-white/20">
@@ -535,7 +564,7 @@ export default function ActivityModal({
                               </div>
                             )}
                           </div>
-                          
+
                           {/* Thumbnail Navigation - only show if more than 1 image */}
                           {uploadedImages.length > 1 && (
                             <div className="flex gap-2 p-3 bg-secondary/50 overflow-x-auto">
@@ -543,11 +572,10 @@ export default function ActivityModal({
                                 <button
                                   key={index}
                                   onClick={() => setCurrentImageIndex(index)}
-                                  className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                                    index === currentImageIndex
+                                  className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${index === currentImageIndex
                                       ? 'border-accent ring-2 ring-accent/50'
                                       : 'border-foreground/20 hover:border-foreground/40'
-                                  }`}
+                                    }`}
                                 >
                                   <img
                                     src={image}
@@ -723,7 +751,7 @@ export default function ActivityModal({
                             (Multiple foto)
                           </span>
                         </label>
-                        
+
                         {/* Upload Button */}
                         <label className="border-2 border-dashed border-foreground/20 rounded-xl p-6 sm:p-8 text-center hover:border-accent hover:bg-accent/5 transition-all cursor-pointer group block">
                           <input

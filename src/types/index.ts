@@ -9,6 +9,7 @@ export interface Activity {
   status: "upcoming" | "ongoing" | "completed";
   image?: string;
   images?: string[]; // Add array of all images
+  photos?: FotoKegiatan[]; // Add array of full photo objects including IDs
   createdAt: string;
   coordinates?: [number, number]; // [lat, lng] for map display
   status_kegiatan?: number; // Add ID from database
