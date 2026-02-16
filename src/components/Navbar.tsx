@@ -46,7 +46,14 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-2">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              let isActive = location.pathname === item.path;
+
+              // Special case: Keep Recipe active when on Recipe Detail page
+              if (item.path === "/resep" && location.pathname.startsWith("/resep/")) {
+                const isDetail = /^\/resep\/\d+/.test(location.pathname);
+                if (isDetail) isActive = true;
+              }
+
               return (
                 <Link key={item.path} to={item.path}>
                   <Button
@@ -96,7 +103,14 @@ export function Navbar() {
             <div className="container mx-auto px-4 py-4 flex flex-col gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+                let isActive = location.pathname === item.path;
+
+                // Special case: Keep Recipe active when on Recipe Detail page
+                if (item.path === "/resep" && location.pathname.startsWith("/resep/")) {
+                  const isDetail = /^\/resep\/\d+/.test(location.pathname);
+                  if (isDetail) isActive = true;
+                }
+
                 return (
                   <Link
                     key={item.path}

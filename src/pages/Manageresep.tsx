@@ -14,6 +14,9 @@ import {
   Upload,
   Image as ImageIcon,
   Loader2,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -92,6 +95,9 @@ export default function ManageResep() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<Resep | null>(null);
+  const [currentDetailImageIndex, setCurrentDetailImageIndex] = useState(0);
 
   // Form state
   const [formData, setFormData] = useState<ResepFormData>({
@@ -569,6 +575,19 @@ export default function ManageResep() {
 
                   {/* Actions */}
                   <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-2"
+                      onClick={() => {
+                        setSelectedRecipe(recipe);
+                        setCurrentDetailImageIndex(0);
+                        setIsDetailOpen(true);
+                      }}
+                    >
+                      <Eye className="w-4 h-4" />
+                      Detail
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -1115,6 +1134,205 @@ export default function ManageResep() {
             <Button variant="destructive" onClick={handleDelete}>
               Hapus
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recipe Detail Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-full md:w-[90vw] bg-gray-50/95 backdrop-blur-sm">
+          <DialogHeader className="pb-4 border-b">
+            <DialogTitle className="font-fredoka text-2xl flex items-center gap-2">
+              <ChefHat className="w-6 h-6" />
+              Detail Resep
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedRecipe && (
+            <div className="space-y-6 pt-4">
+              {/* Hero Image & Basic Info */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="aspect-video rounded-xl overflow-hidden border-2 border-border/20 shadow-sm relative bg-white group">
+                  <img
+                    src={
+                      selectedRecipe.foto && selectedRecipe.foto.length > 0
+                        ? selectedRecipe.foto[currentDetailImageIndex].file_path
+                        : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800"
+                    }
+                    alt={selectedRecipe.judul}
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                  />
+
+                  {/* Slider Controls */}
+                  {selectedRecipe.foto && selectedRecipe.foto.length > 1 && (
+                    <>
+                      <div className="absolute inset-0 flex items-center justify-between p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-sm"
+                          onClick={() => setCurrentDetailImageIndex((prev) =>
+                            prev === 0 ? selectedRecipe.foto!.length - 1 : prev - 1
+                          )}
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="bg-black/20 hover:bg-black/40 text-white rounded-full backdrop-blur-sm"
+                          onClick={() => setCurrentDetailImageIndex((prev) =>
+                            (prev + 1) % selectedRecipe.foto!.length
+                          )}
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </Button>
+                      </div>
+
+                      {/* Dot Indicators */}
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                        {selectedRecipe.foto.map((_, idx) => (
+                          <div
+                            key={idx}
+                            className={`w-1.5 h-1.5 rounded-full transition-all ${idx === currentDetailImageIndex
+                              ? "bg-white w-3"
+                              : "bg-white/50"
+                              }`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="flex flex-col h-full">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <Badge variant="outline" className="text-secondary-foreground border-border bg-white">
+                      {getKategoriLabel(selectedRecipe.kategori)}
+                    </Badge>
+                    <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 bg-white">
+                      {getKesulitanLabel(selectedRecipe.tingkat_kesulitan)}
+                    </Badge>
+                  </div>
+                  <h2 className="font-fredoka text-3xl font-bold mb-3 text-foreground break-words">
+                    {selectedRecipe.judul}
+                  </h2>
+                  <p className="text-muted-foreground mb-6 text-sm leading-relaxed flex-grow">
+                    {selectedRecipe.deskripsi}
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-3 mt-auto">
+                    <div className="p-3 bg-white rounded-lg text-center border border-border/40 shadow-sm">
+                      <Clock className="w-5 h-5 mx-auto mb-1 text-primary" />
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground block mb-0.5">Waktu</span>
+                      <span className="font-bold text-sm text-foreground">
+                        {selectedRecipe.waktu_memasak + selectedRecipe.waktu_persiapan}m
+                      </span>
+                    </div>
+                    <div className="p-3 bg-white rounded-lg text-center border border-border/40 shadow-sm">
+                      <Users className="w-5 h-5 mx-auto mb-1 text-blue-500" />
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground block mb-0.5">Porsi</span>
+                      <span className="font-bold text-sm text-foreground">{selectedRecipe.porsi}</span>
+                    </div>
+                    <div className="p-3 bg-white rounded-lg text-center border border-border/40 shadow-sm">
+                      <Flame className="w-5 h-5 mx-auto mb-1 text-orange-500" />
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground block mb-0.5">Kalori</span>
+                      <span className="font-bold text-sm text-foreground">{selectedRecipe.kalori}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ingredients & Nutrition */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card className="shadow-sm border border-border/60 bg-white">
+                  <CardContent className="p-5">
+                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-foreground">
+                      <ChefHat className="w-4 h-4" />
+                      Bahan-bahan
+                    </h3>
+                    <ul className="space-y-2">
+                      {selectedRecipe.bahan && selectedRecipe.bahan.length > 0 ? (
+                        selectedRecipe.bahan.map((item, idx) => (
+                          <li key={idx} className="flex justify-between items-center p-2.5 bg-secondary/10 rounded-lg hover:bg-secondary/20 transition-colors">
+                            <span className="text-sm font-medium">{item.nama}</span>
+                            <span className="text-sm font-bold text-muted-foreground bg-gray-50 px-2 py-0.5 rounded border shadow-sm">{item.takaran}</span>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-muted-foreground text-sm italic py-2 text-center bg-secondary/10 rounded">Tidak ada data bahan</li>
+                      )}
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-sm border border-border/60 bg-white">
+                  <CardContent className="p-5">
+                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-foreground">
+                      <Flame className="w-4 h-4" />
+                      Informasi Nutrisi
+                    </h3>
+                    <div className="space-y-0 divide-y divide-border/40 border border-border/40 rounded-lg overflow-hidden">
+                      {selectedRecipe.nutrisi && selectedRecipe.nutrisi.length > 0 ? (
+                        selectedRecipe.nutrisi.map((item, idx) => (
+                          <div key={idx} className="flex justify-between items-center p-3 bg-secondary/5 hover:bg-secondary/20 transition-colors">
+                            <span className="text-sm text-muted-foreground font-medium">{item.label}</span>
+                            <span className="text-sm font-bold text-foreground">{item.nilai}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-sm italic p-4 text-center">Tidak ada data nutrisi</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Steps & Tips */}
+              <div className="space-y-6">
+                <Card className="shadow-sm border border-border/60 bg-white">
+                  <CardContent className="p-5">
+                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-foreground">
+                      Langkah Memasak
+                    </h3>
+                    <div className="space-y-4">
+                      {selectedRecipe.steps && selectedRecipe.steps.length > 0 ? (
+                        selectedRecipe.steps
+                          .sort((a, b) => a.urutan - b.urutan)
+                          .map((step, idx) => (
+                            <div key={idx} className="flex gap-4 group">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-sm shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors mt-0.5">
+                                {step.urutan}
+                              </div>
+                              <div className="p-0 pt-1 flex-1">
+                                <p className="text-sm text-foreground leading-relaxed">{step.nama}</p>
+                              </div>
+                            </div>
+                          ))
+                      ) : (
+                        <p className="text-muted-foreground italic text-center py-4">Tidak ada langkah memasak</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {selectedRecipe.tips && selectedRecipe.tips.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 shadow-sm">
+                    <h3 className="font-bold text-lg mb-3 text-blue-700 flex items-center gap-2">
+                      Tips Koki
+                    </h3>
+                    <ul className="space-y-2 list-disc list-outside ml-5 text-blue-900/80 text-sm">
+                      {selectedRecipe.tips.map((tip, idx) => (
+                        <li key={idx} className="pl-1 leading-relaxed">{tip.nama}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="mt-6 pt-4 border-t bg-transparent">
+            <Button onClick={() => setIsDetailOpen(false)} className="w-full sm:w-auto">Tutup</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

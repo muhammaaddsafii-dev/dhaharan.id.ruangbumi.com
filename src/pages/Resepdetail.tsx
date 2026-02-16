@@ -12,6 +12,8 @@ import {
   Share2,
   Printer,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,12 +43,17 @@ export default function ResepDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [id]);
 
   // Load recipe data from backend
   useEffect(() => {
     const loadRecipe = async () => {
       if (!id) return;
-      
+
       try {
         setIsLoading(true);
         const data = await resepAPI.getById(Number(id));
@@ -120,10 +127,24 @@ export default function ResepDetail() {
     );
   }
 
-  const mainImage = recipe.foto?.[0]?.file_path || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
+  const mainImage = recipe.foto && recipe.foto.length > 0
+    ? recipe.foto[currentImageIndex].file_path
+    : "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
   const totalTime = recipe.waktu_persiapan + recipe.waktu_memasak;
   const sortedSteps = [...(recipe.steps || [])].sort((a, b) => a.urutan - b.urutan);
   const sortedTips = [...(recipe.tips || [])].sort((a, b) => a.urutan - b.urutan);
+
+  const nextImage = () => {
+    if (recipe?.foto && recipe.foto.length > 0) {
+      setCurrentImageIndex((prev) => (prev + 1) % recipe.foto!.length);
+    }
+  };
+
+  const prevImage = () => {
+    if (recipe?.foto && recipe.foto.length > 0) {
+      setCurrentImageIndex((prev) => (prev - 1 + recipe.foto!.length) % recipe.foto!.length);
+    }
+  };
 
   return (
     <div className="min-h-screen pb-12">
@@ -163,9 +184,8 @@ export default function ResepDetail() {
                 className="rounded-full shadow-lg bg-white border-2 border-black"
               >
                 <Heart
-                  className={`w-5 h-5 ${
-                    isFavorite ? "fill-yellow-400 text-yellow-400" : ""
-                  }`}
+                  className={`w-5 h-5 ${isFavorite ? "fill-yellow-400 text-yellow-400" : ""
+                    }`}
                 />
               </Button>
               <Button
@@ -262,8 +282,64 @@ export default function ResepDetail() {
 
         {/* Main Content */}
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Ingredients & Nutrition */}
+          {/* Left Column - Image, Ingredients & Nutrition */}
           <div className="lg:col-span-1 space-y-6">
+
+            {/* Recipe Images */}
+            <div className="relative overflow-hidden rounded-2xl border-2 border-black shadow-lg bg-black/5 aspect-video w-full">
+              <motion.img
+                key={mainImage}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                src={mainImage}
+                alt={recipe.judul}
+                className="w-full h-full object-contain bg-black/5"
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
+                }}
+              />
+
+              {/* Navigation Buttons for Multiple Images */}
+              {recipe.foto && recipe.foto.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevImage();
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition-colors z-20"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextImage();
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition-colors z-20"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+
+                  {/* Dots Indicators */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                    {recipe.foto.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        className={`w-1.5 h-1.5 rounded-full transition-all ${idx === currentImageIndex
+                          ? "bg-primary w-3 shadow-sm ring-1 ring-white"
+                          : "bg-white/50 hover:bg-white/80"
+                          }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Ingredients */}
             <Card className="shadow-lg border-2 border-black bg-white">
               <CardHeader className="pb-4">
@@ -361,21 +437,19 @@ export default function ResepDetail() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                            completedSteps.includes(index)
-                              ? "bg-green-50 border-green-400"
-                              : "bg-gray-50 border-gray-200 hover:border-black"
-                          }`}
+                          className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${completedSteps.includes(index)
+                            ? "bg-green-50 border-green-400"
+                            : "bg-gray-50 border-gray-200 hover:border-black"
+                            }`}
                           onClick={() => toggleStep(index)}
                         >
                           <div className="flex gap-4">
                             <div className="shrink-0">
                               <div
-                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-fredoka font-bold transition-all ${
-                                  completedSteps.includes(index)
-                                    ? "bg-green-500 border-green-500 text-white"
-                                    : "bg-primary border-yellow-500 text-black"
-                                }`}
+                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-fredoka font-bold transition-all ${completedSteps.includes(index)
+                                  ? "bg-green-500 border-green-500 text-white"
+                                  : "bg-primary border-yellow-500 text-black"
+                                  }`}
                               >
                                 {completedSteps.includes(index) ? (
                                   <CheckCircle2 className="w-5 h-5" />
@@ -386,11 +460,10 @@ export default function ResepDetail() {
                             </div>
                             <div className="flex-1">
                               <p
-                                className={`leading-relaxed text-black ${
-                                  completedSteps.includes(index)
-                                    ? "line-through text-gray-500"
-                                    : ""
-                                }`}
+                                className={`leading-relaxed text-black ${completedSteps.includes(index)
+                                  ? "line-through text-gray-500"
+                                  : ""
+                                  }`}
                               >
                                 {step.nama}
                               </p>
@@ -469,6 +542,6 @@ export default function ResepDetail() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </div >
   );
 }
