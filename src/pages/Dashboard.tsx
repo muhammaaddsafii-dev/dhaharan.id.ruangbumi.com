@@ -31,14 +31,14 @@ export default function Dashboard() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Load kegiatan dan transaksi secara parallel
         const [kegiatanData, transaksiData, summary] = await Promise.all([
           kegiatanAPI.getAll(),
           transaksiAPI.getAll(),
           transaksiAPI.getSummary(),
         ]);
-        
+
         setActivities(kegiatanData);
         setCashflow(transaksiData);
         setTotalIncome(Number(summary.total_pemasukan));
@@ -72,6 +72,17 @@ export default function Dashboard() {
     (a) => a.status_kegiatan !== 3
   ).length;
 
+  // Calculate totals from cashflow list for consistency
+  const calculatedIncome = cashflow
+    .filter((t) => t.tipe_transaksi_detail?.nama.toLowerCase() === "pemasukan")
+    .reduce((sum, t) => sum + Number(t.jumlah), 0);
+
+  const calculatedExpense = cashflow
+    .filter((t) => t.tipe_transaksi_detail?.nama.toLowerCase() === "pengeluaran")
+    .reduce((sum, t) => sum + Number(t.jumlah), 0);
+
+  const calculatedBalance = calculatedIncome - calculatedExpense;
+
   const stats = [
     {
       title: "Kegiatan Aktif",
@@ -82,21 +93,21 @@ export default function Dashboard() {
     },
     {
       title: "Total Pemasukan",
-      value: formatCurrency(totalIncome),
+      value: formatCurrency(calculatedIncome),
       icon: TrendingUp,
       bg: "bg-accent",
       iconColor: "text-accent-foreground",
     },
     {
       title: "Total Pengeluaran",
-      value: formatCurrency(totalExpense),
+      value: formatCurrency(calculatedExpense),
       icon: TrendingDown,
       bg: "bg-highlight",
       iconColor: "text-highlight-foreground",
     },
     {
       title: "Saldo",
-      value: formatCurrency(balance),
+      value: formatCurrency(calculatedBalance),
       icon: Wallet,
       bg: "bg-secondary",
       iconColor: "text-secondary-foreground",
@@ -282,9 +293,8 @@ export default function Dashboard() {
                         className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-xl bg-secondary/50 border-2 border-foreground/10 hover:border-foreground/30 transition-all"
                       >
                         <div
-                          className={`w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl border-2 border-foreground shadow-cartoon-sm flex items-center justify-center ${
-                            isIncome ? "bg-accent" : "bg-highlight"
-                          }`}
+                          className={`w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl border-2 border-foreground shadow-cartoon-sm flex items-center justify-center ${isIncome ? "bg-accent" : "bg-highlight"
+                            }`}
                         >
                           {isIncome ? (
                             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
@@ -301,9 +311,8 @@ export default function Dashboard() {
                           </p>
                         </div>
                         <span
-                          className={`font-fredoka font-bold text-xs sm:text-sm shrink-0 ${
-                            isIncome ? "text-accent" : "text-highlight"
-                          }`}
+                          className={`font-fredoka font-bold text-xs sm:text-sm shrink-0 ${isIncome ? "text-accent" : "text-highlight"
+                            }`}
                         >
                           {isIncome ? "+" : "-"}{" "}
                           {formatCurrency(Number(item.jumlah))

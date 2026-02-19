@@ -167,6 +167,16 @@ export default function Cashflow() {
     startIndex + itemsPerPage
   );
 
+  const filteredIncome = filteredTransactions
+    .filter((t) => t.tipe_transaksi_detail?.nama.toLowerCase() === "pemasukan")
+    .reduce((sum, t) => sum + Number(t.jumlah), 0);
+
+  const filteredExpense = filteredTransactions
+    .filter((t) => t.tipe_transaksi_detail?.nama.toLowerCase() === "pengeluaran")
+    .reduce((sum, t) => sum + Number(t.jumlah), 0);
+
+  const filteredBalance = filteredIncome - filteredExpense;
+
   // Export PDF
   const exportPDF = () => {
     const doc = new jsPDF({ unit: "pt" });
@@ -246,7 +256,7 @@ export default function Cashflow() {
                   </div>
                 </div>
                 <p className="font-fredoka text-xl sm:text-3xl font-bold text-primary">
-                  {formatCurrency(balance).replace(/\s/g, "")}
+                  {formatCurrency(filteredBalance).replace(/\s/g, "")}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                   Total dana tersedia
@@ -274,7 +284,7 @@ export default function Cashflow() {
                   </div>
                 </div>
                 <p className="font-fredoka text-xl sm:text-3xl font-bold text-accent">
-                  {formatCurrency(totalIncome).replace(/\s/g, "")}
+                  {formatCurrency(filteredIncome).replace(/\s/g, "")}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                   Total dana masuk
@@ -302,7 +312,7 @@ export default function Cashflow() {
                   </div>
                 </div>
                 <p className="font-fredoka text-xl sm:text-3xl font-bold text-highlight">
-                  {formatCurrency(totalExpense).replace(/\s/g, "")}
+                  {formatCurrency(filteredExpense).replace(/\s/g, "")}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                   Total dana keluar

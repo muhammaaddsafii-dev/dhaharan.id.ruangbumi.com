@@ -122,9 +122,18 @@ export default function Cashflow() {
     const matchesType = filterType === "all" || c.type === filterType;
     return matchesSearch && matchesType;
   }).sort((a, b) => {
-    // Always sort by date descending internally
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
+
+  const filteredIncome = filteredCashflow
+    .filter((item) => item.type === "income")
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  const filteredExpense = filteredCashflow
+    .filter((item) => item.type === "expense")
+    .reduce((sum, item) => sum + item.amount, 0);
+
+  const filteredBalance = filteredIncome - filteredExpense;
 
   // Group by month or year
   const groupedCashflow = filteredCashflow.reduce((acc, item) => {
@@ -308,7 +317,7 @@ export default function Cashflow() {
                     Pemasukan
                   </p>
                   <p className="font-fredoka text-xs sm:text-lg md:text-xl font-bold text-accent-foreground truncate">
-                    {formatCurrency(totalIncome)
+                    {formatCurrency(filteredIncome)
                       .replace(/\s/g, "")
                       .replace("Rp", "")
                       .substring(0, 8)}
@@ -333,7 +342,7 @@ export default function Cashflow() {
                     Pengeluaran
                   </p>
                   <p className="font-fredoka text-xs sm:text-lg md:text-xl font-bold text-highlight-foreground truncate">
-                    {formatCurrency(totalExpense)
+                    {formatCurrency(filteredExpense)
                       .replace(/\s/g, "")
                       .replace("Rp", "")
                       .substring(0, 8)}
@@ -358,10 +367,10 @@ export default function Cashflow() {
                     Saldo
                   </p>
                   <p
-                    className={`font-fredoka text-xs sm:text-lg md:text-xl font-bold truncate ${balance >= 0 ? "text-accent" : "text-highlight"
+                    className={`font-fredoka text-xs sm:text-lg md:text-xl font-bold truncate ${filteredBalance >= 0 ? "text-accent" : "text-highlight"
                       }`}
                   >
-                    {formatCurrency(balance)
+                    {formatCurrency(filteredBalance)
                       .replace(/\s/g, "")
                       .replace("Rp", "")
                       .substring(0, 8)}
