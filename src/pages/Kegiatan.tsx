@@ -9,6 +9,7 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ import { kegiatanAPI, jenisKegiatanAPI } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 
 // Image Slider Component
-function ImageSlider({ images }: { images: string[] }) {
+function ImageSlider({ images, onImageClick }: { images: string[], onImageClick?: (index: number) => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const nextImage = () => {
@@ -57,7 +58,8 @@ function ImageSlider({ images }: { images: string[] }) {
       <img
         src={images[0]}
         alt="Activity"
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+        onClick={() => onImageClick?.(0)}
       />
     );
   }
@@ -69,11 +71,12 @@ function ImageSlider({ images }: { images: string[] }) {
           key={currentIndex}
           src={images[currentIndex]}
           alt={`Slide ${currentIndex + 1}`}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
+          onClick={() => onImageClick?.(currentIndex)}
         />
       </AnimatePresence>
 
@@ -85,7 +88,7 @@ function ImageSlider({ images }: { images: string[] }) {
               e.stopPropagation();
               prevImage();
             }}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border-2 border-foreground shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border-2 border-foreground shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -95,7 +98,7 @@ function ImageSlider({ images }: { images: string[] }) {
               e.stopPropagation();
               nextImage();
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border-2 border-foreground shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm border-2 border-foreground shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -104,7 +107,7 @@ function ImageSlider({ images }: { images: string[] }) {
 
       {/* Dots Indicator */}
       {images.length > 1 && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
           {images.map((_, index) => (
             <button
               key={index}
@@ -112,11 +115,10 @@ function ImageSlider({ images }: { images: string[] }) {
                 e.stopPropagation();
                 setCurrentIndex(index);
               }}
-              className={`w-2 h-2 rounded-full transition-all ${
-                index === currentIndex
-                  ? "bg-white w-6"
-                  : "bg-white/50 hover:bg-white/75"
-              }`}
+              className={`w-2 h-2 rounded-full transition-all ${index === currentIndex
+                ? "bg-white w-6"
+                : "bg-white/50 hover:bg-white/75"
+                }`}
             />
           ))}
         </div>
@@ -132,22 +134,28 @@ export default function Kegiatan() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [statusFilter, setStatusFilter] = useState("all");
-  
+
   // pagination
   const itemsPerPage = 6;
   const [currentPage, setCurrentPage] = useState(1);
+
+  // State for Full Screen Image Slider
+  const [fullScreenData, setFullScreenData] = useState<{
+    images: string[];
+    index: number;
+  } | null>(null);
 
   // Load data dari backend
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        
+
         const [kegiatanData, jenisData] = await Promise.all([
           kegiatanAPI.getAll(),
           jenisKegiatanAPI.getAll(),
         ]);
-        
+
         setActivities(kegiatanData);
         setJenisKegiatan(jenisData);
       } catch (error) {
@@ -171,10 +179,10 @@ export default function Kegiatan() {
   // Format tanggal ke format Indonesia
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', { 
+    return date.toLocaleDateString('id-ID', {
       day: 'numeric',
-      month: 'long', 
-      year: 'numeric' 
+      month: 'long',
+      year: 'numeric'
     });
   };
 
@@ -185,7 +193,7 @@ export default function Kegiatan() {
       activity.deskripsi.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory =
-      selectedCategory === "Semua" || 
+      selectedCategory === "Semua" ||
       activity.jenis_kegiatan_detail?.nama === selectedCategory;
 
     const matchesStatus = (() => {
@@ -343,7 +351,10 @@ export default function Kegiatan() {
                   >
                     <Card className="overflow-hidden h-full group">
                       <div className="aspect-video relative overflow-hidden">
-                        <ImageSlider images={images} />
+                        <ImageSlider
+                          images={images}
+                          onImageClick={(idx) => setFullScreenData({ images, index: idx })}
+                        />
 
                         <div className="absolute top-3 left-3 flex gap-2 z-10">
                           <Badge variant={statusBadge.variant}>
@@ -383,7 +394,7 @@ export default function Kegiatan() {
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="w-4 h-4 shrink-0" />
                           <span className="line-clamp-1">
-                            {activity.lokasi?.coordinates 
+                            {activity.lokasi?.coordinates
                               ? `${activity.lokasi.coordinates[1]}, ${activity.lokasi.coordinates[0]}`
                               : "Lokasi tidak tersedia"
                             }
@@ -456,6 +467,174 @@ export default function Kegiatan() {
           </motion.div>
         )}
       </div>
+
+      {/* Full Screen Image Slider Modal */}
+      <AnimatePresence>
+        {fullScreenData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[2000] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 pb-4 pt-20 md:p-10"
+            onClick={() => setFullScreenData(null)}
+          >
+            {/* Keyboard Navigation Handler */}
+            <FullScreenNavigation
+              data={fullScreenData}
+              onUpdate={(idx) => setFullScreenData({ ...fullScreenData, index: idx })}
+              onClose={() => setFullScreenData(null)}
+            />
+
+            <motion.div
+              className="relative w-full max-w-5xl h-auto flex flex-col items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setFullScreenData(null)}
+                className="absolute -top-12 right-0 md:-right-12 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-200 z-[70] group"
+              >
+                <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
+              </button>
+
+              {/* Main Image Container */}
+              <div className="relative w-full flex justify-center items-center">
+                {/* Navigation Buttons (Desktop) */}
+                {fullScreenData.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFullScreenData(prev => prev ? {
+                          ...prev,
+                          index: (prev.index - 1 + prev.images.length) % prev.images.length
+                        } : null);
+                      }}
+                      className="absolute -left-4 md:-left-16 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-200 z-[60] hover:scale-110 hidden md:flex"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFullScreenData(prev => prev ? {
+                          ...prev,
+                          index: (prev.index + 1) % prev.images.length
+                        } : null);
+                      }}
+                      className="absolute -right-4 md:-right-16 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-200 z-[60] hover:scale-110 hidden md:flex"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  </>
+                )}
+
+                {/* Main Image */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={fullScreenData.index}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    className="relative flex items-center justify-center"
+                  >
+                    <img
+                      src={fullScreenData.images[fullScreenData.index]}
+                      alt={`Full View ${fullScreenData.index + 1}`}
+                      className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl select-none"
+                      draggable={false}
+                    />
+
+                    {/* Swipe Area Overlay for Touch */}
+                    <div
+                      className="absolute inset-0 md:hidden touch-pan-y"
+                      onTouchStart={(e) => {
+                        const touch = e.touches[0];
+                        // Store start X
+                        (e.target as any).startX = touch.clientX;
+                      }}
+                      onTouchEnd={(e) => {
+                        const touch = e.changedTouches[0];
+                        const diff = touch.clientX - (e.target as any).startX;
+                        if (Math.abs(diff) > 50) {
+                          if (diff > 0) {
+                            // Swipe Right -> Prev
+                            setFullScreenData(prev => prev ? {
+                              ...prev,
+                              index: (prev.index - 1 + prev.images.length) % prev.images.length
+                            } : null);
+                          } else {
+                            // Swipe Left -> Next
+                            setFullScreenData(prev => prev ? {
+                              ...prev,
+                              index: (prev.index + 1) % prev.images.length
+                            } : null);
+                          }
+                        }
+                      }}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Counter caption */}
+              <div className="mt-4 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full text-white text-sm font-medium border border-white/10 z-[60]">
+                {fullScreenData.index + 1} / {fullScreenData.images.length}
+              </div>
+
+              {/* Thumbnails (Desktop only) */}
+              {fullScreenData.images.length > 1 && (
+                <div className="mt-4 hidden md:flex gap-2 p-2 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 max-w-[90vw] overflow-x-auto z-[60]">
+                  {fullScreenData.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFullScreenData(prev => prev ? { ...prev, index: idx } : null);
+                      }}
+                      className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${idx === fullScreenData.index ? "border-white scale-110 shadow-lg" : "border-transparent opacity-50 hover:opacity-100"
+                        }`}
+                    >
+                      <img src={img} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
+}
+
+// Helper component for keyboard navigation
+function FullScreenNavigation({
+  data,
+  onUpdate,
+  onClose
+}: {
+  data: { images: string[], index: number },
+  onUpdate: (idx: number) => void,
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") {
+        onUpdate((data.index + 1) % data.images.length);
+      } else if (e.key === "ArrowLeft") {
+        onUpdate((data.index - 1 + data.images.length) % data.images.length);
+      } else if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [data, onUpdate, onClose]);
+
+  return null;
 }

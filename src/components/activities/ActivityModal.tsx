@@ -61,6 +61,12 @@ export default function ActivityModal({
   // Slider state for view mode
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Full screen viewer state
+  const [fullScreenData, setFullScreenData] = useState<{
+    images: string[];
+    index: number;
+  } | null>(null);
+
   // Fetch jenis and status kegiatan on mount
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -412,6 +418,144 @@ export default function ActivityModal({
 
   return (
     <AnimatePresence>
+      {/* Full Screen Image Viewer */}
+      {fullScreenData && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[2000] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 pb-4 pt-20 md:p-10"
+          onClick={() => setFullScreenData(null)}
+        >
+          {/* Keyboard Navigation Handler */}
+          <FullScreenNavigation
+            data={fullScreenData}
+            onUpdate={(idx) => setFullScreenData({ ...fullScreenData, index: idx })}
+            onClose={() => setFullScreenData(null)}
+          />
+
+          <motion.div
+            className="relative w-full max-w-5xl h-auto flex flex-col items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setFullScreenData(null)}
+              className="absolute -top-12 right-0 md:-right-12 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-200 z-[70] group"
+            >
+              <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
+            </button>
+
+            {/* Main Image Container */}
+            <div className="relative w-full flex justify-center items-center">
+              {/* Navigation Buttons (Desktop) */}
+              {fullScreenData.images.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFullScreenData(prev => prev ? {
+                        ...prev,
+                        index: (prev.index - 1 + prev.images.length) % prev.images.length
+                      } : null);
+                    }}
+                    className="absolute -left-4 md:-left-16 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-200 z-[60] hover:scale-110 hidden md:flex"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFullScreenData(prev => prev ? {
+                        ...prev,
+                        index: (prev.index + 1) % prev.images.length
+                      } : null);
+                    }}
+                    className="absolute -right-4 md:-right-16 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-200 z-[60] hover:scale-110 hidden md:flex"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+
+              {/* Main Image */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={fullScreenData.index}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  className="relative flex items-center justify-center"
+                >
+                  <img
+                    src={fullScreenData.images[fullScreenData.index]}
+                    alt={`Full View ${fullScreenData.index + 1}`}
+                    className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl select-none"
+                    draggable={false}
+                  />
+
+                  {/* Swipe Area Overlay for Touch */}
+                  <div
+                    className="absolute inset-0 md:hidden touch-pan-y"
+                    onTouchStart={(e) => {
+                      const touch = e.touches[0];
+                      // Store start X
+                      (e.target as any).startX = touch.clientX;
+                    }}
+                    onTouchEnd={(e) => {
+                      const touch = e.changedTouches[0];
+                      const diff = touch.clientX - (e.target as any).startX;
+                      if (Math.abs(diff) > 50) {
+                        if (diff > 0) {
+                          // Swipe Right -> Prev
+                          setFullScreenData(prev => prev ? {
+                            ...prev,
+                            index: (prev.index - 1 + prev.images.length) % prev.images.length
+                          } : null);
+                        } else {
+                          // Swipe Left -> Next
+                          setFullScreenData(prev => prev ? {
+                            ...prev,
+                            index: (prev.index + 1) % prev.images.length
+                          } : null);
+                        }
+                      }
+                    }}
+                  />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Counter caption */}
+            <div className="mt-4 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full text-white text-sm font-medium border border-white/10 z-[60]">
+              {fullScreenData.index + 1} / {fullScreenData.images.length}
+            </div>
+
+            {/* Thumbnails (Desktop only) */}
+            {fullScreenData.images.length > 1 && (
+              <div className="mt-4 hidden md:flex gap-2 p-2 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 max-w-[90vw] overflow-x-auto z-[60]">
+                {fullScreenData.images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFullScreenData(prev => prev ? { ...prev, index: idx } : null);
+                    }}
+                    className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${idx === fullScreenData.index ? "border-white scale-110 shadow-lg" : "border-transparent opacity-50 hover:opacity-100"
+                      }`}
+                  >
+                    <img src={img} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+          </motion.div>
+        </motion.div>
+      )}
+
       {isOpen && (
         <>
           {/* Overlay */}
@@ -600,11 +744,15 @@ export default function ActivityModal({
                                 key={currentImageIndex}
                                 src={uploadedImages[currentImageIndex]}
                                 alt={`${formData.title} ${currentImageIndex + 1}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
                                 initial={{ opacity: 0, x: 100 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -100 }}
                                 transition={{ duration: 0.3 }}
+                                onClick={() => setFullScreenData({
+                                  images: uploadedImages,
+                                  index: currentImageIndex
+                                })}
                               />
                             </AnimatePresence>
 
@@ -928,4 +1076,32 @@ export default function ActivityModal({
       )}
     </AnimatePresence>
   );
+}
+
+// Helper component for keyboard navigation
+function FullScreenNavigation({
+  data,
+  onUpdate,
+  onClose
+}: {
+  data: { images: string[], index: number },
+  onUpdate: (idx: number) => void,
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") {
+        onUpdate((data.index + 1) % data.images.length);
+      } else if (e.key === "ArrowLeft") {
+        onUpdate((data.index - 1 + data.images.length) % data.images.length);
+      } else if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [data, onUpdate, onClose]);
+
+  return null;
 }
