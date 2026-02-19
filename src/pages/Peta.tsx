@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { MapPin, Calendar, Camera, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { MapPin, Calendar, Camera, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -44,11 +44,31 @@ function FlyToLocation({ coords }: any) {
   return null;
 }
 
+// FullScreenNavigation Helper Component
+function FullScreenNavigation({ data, onUpdate, onClose }: any) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft")
+        onUpdate((data.index - 1 + data.images.length) % data.images.length);
+      if (e.key === "ArrowRight")
+        onUpdate((data.index + 1) % data.images.length);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [data, onUpdate, onClose]);
+  return null;
+}
+
 export default function Peta() {
   const [activityLocations, setActivityLocations] = useState<ActivityLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<ActivityLocation | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [fullScreenData, setFullScreenData] = useState<{
+    images: string[];
+    index: number;
+  } | null>(null);
 
   // Load data dari backend
   useEffect(() => {
@@ -56,7 +76,7 @@ export default function Peta() {
       try {
         setIsLoading(true);
         const kegiatan = await kegiatanAPI.getAll();
-        
+
         // Transform data: extract coordinates dari lokasi GeoJSON
         const locationsWithCoords: ActivityLocation[] = kegiatan.map((k) => ({
           ...k,
@@ -65,7 +85,7 @@ export default function Peta() {
             lng: k.lokasi.coordinates[0],
           },
         }));
-        
+
         setActivityLocations(locationsWithCoords);
       } catch (error) {
         console.error("Error loading kegiatan:", error);
@@ -85,10 +105,10 @@ export default function Peta() {
   // Format tanggal
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', { 
+    return date.toLocaleDateString('id-ID', {
       day: 'numeric',
-      month: 'long', 
-      year: 'numeric' 
+      month: 'long',
+      year: 'numeric'
     });
   };
 
@@ -259,10 +279,16 @@ export default function Peta() {
                                 key={foto.id || i}
                                 src={foto.file_path}
                                 alt={`${selectedLocation.nama} - ${i + 1}`}
-                                className="w-full h-48 sm:h-64 object-cover rounded-xl flex-shrink-0"
+                                className="w-full h-48 sm:h-64 object-cover rounded-xl flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
                                 onError={(e) => {
                                   e.currentTarget.src = "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600";
                                 }}
+                                onClick={() =>
+                                  setFullScreenData({
+                                    images: selectedLocation.foto.map((f) => f.file_path),
+                                    index: i,
+                                  })
+                                }
                               />
                             )
                           )}
@@ -274,11 +300,10 @@ export default function Peta() {
                             <button
                               key={idx}
                               onClick={() => setSlideIndex(idx)}
-                              className={`rounded-full transition-all ${
-                                slideIndex === idx
-                                  ? "w-3 h-3 sm:w-4 sm:h-4 bg-orange-500"
-                                  : "w-2 h-2 sm:w-3 sm:h-3 bg-gray-300"
-                              }`}
+                              className={`rounded-full transition-all ${slideIndex === idx
+                                ? "w-3 h-3 sm:w-4 sm:h-4 bg-orange-500"
+                                : "w-2 h-2 sm:w-3 sm:h-3 bg-gray-300"
+                                }`}
                               aria-label={`Slide ${idx + 1}`}
                             />
                           ))}
@@ -286,7 +311,7 @@ export default function Peta() {
                       </div>
                     </div>
                   )}
-                  
+
                   {(!selectedLocation.foto || selectedLocation.foto.length === 0) && (
                     <div className="text-center py-8 text-sm text-muted-foreground">
                       Belum ada dokumentasi
@@ -406,6 +431,174 @@ export default function Peta() {
           border-radius: 20px;
         }
       `}</style>
+      {/* Full Screen Image Slider Modal */}
+      <AnimatePresence>
+        {fullScreenData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[2000] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4 pb-4 pt-20 md:p-10"
+            onClick={() => setFullScreenData(null)}
+          >
+            {/* Keyboard Navigation Handler */}
+            <FullScreenNavigation
+              data={fullScreenData}
+              onUpdate={(idx) =>
+                setFullScreenData({ ...fullScreenData, index: idx })
+              }
+              onClose={() => setFullScreenData(null)}
+            />
+
+            <motion.div
+              className="relative w-full max-w-5xl h-auto flex flex-col items-center justify-center pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setFullScreenData(null)}
+                className="absolute -top-12 right-0 md:-right-12 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-200 z-[70] group"
+              >
+                <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
+              </button>
+
+              {/* Main Image Container */}
+              <div className="relative w-full flex justify-center items-center">
+                {/* Navigation Buttons (Desktop) */}
+                {fullScreenData.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFullScreenData((prev) =>
+                          prev
+                            ? {
+                              ...prev,
+                              index:
+                                (prev.index - 1 + prev.images.length) %
+                                prev.images.length,
+                            }
+                            : null
+                        );
+                      }}
+                      className="absolute -left-4 md:-left-16 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-200 z-[60] hover:scale-110 hidden md:flex"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFullScreenData((prev) =>
+                          prev
+                            ? {
+                              ...prev,
+                              index: (prev.index + 1) % prev.images.length,
+                            }
+                            : null
+                        );
+                      }}
+                      className="absolute -right-4 md:-right-16 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-200 z-[60] hover:scale-110 hidden md:flex"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  </>
+                )}
+
+                {/* Main Image */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={fullScreenData.index}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    className="relative flex items-center justify-center"
+                  >
+                    <img
+                      src={fullScreenData.images[fullScreenData.index]}
+                      alt={`Full View ${fullScreenData.index + 1}`}
+                      className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl select-none"
+                      draggable={false}
+                    />
+
+                    {/* Swipe Area Overlay for Touch */}
+                    <div
+                      className="absolute inset-0 md:hidden touch-pan-y"
+                      onTouchStart={(e) => {
+                        const touch = e.touches[0];
+                        // Store start X
+                        (e.target as any).startX = touch.clientX;
+                      }}
+                      onTouchEnd={(e) => {
+                        const touch = e.changedTouches[0];
+                        const diff = touch.clientX - (e.target as any).startX;
+                        if (Math.abs(diff) > 50) {
+                          if (diff > 0) {
+                            // Swipe Right -> Prev
+                            setFullScreenData((prev) =>
+                              prev
+                                ? {
+                                  ...prev,
+                                  index:
+                                    (prev.index - 1 + prev.images.length) %
+                                    prev.images.length,
+                                }
+                                : null
+                            );
+                          } else {
+                            // Swipe Left -> Next
+                            setFullScreenData((prev) =>
+                              prev
+                                ? {
+                                  ...prev,
+                                  index: (prev.index + 1) % prev.images.length,
+                                }
+                                : null
+                            );
+                          }
+                        }
+                      }}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Counter caption */}
+              <div className="mt-4 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full text-white text-sm font-medium border border-white/10 z-[60]">
+                {fullScreenData.index + 1} / {fullScreenData.images.length}
+              </div>
+
+              {/* Thumbnails (Desktop only) */}
+              {fullScreenData.images.length > 1 && (
+                <div className="mt-4 hidden md:flex gap-2 p-2 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 max-w-[90vw] overflow-x-auto z-[60]">
+                  {fullScreenData.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFullScreenData((prev) =>
+                          prev ? { ...prev, index: idx } : null
+                        );
+                      }}
+                      className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${idx === fullScreenData.index
+                          ? "border-white scale-110 shadow-lg"
+                          : "border-transparent opacity-50 hover:opacity-100"
+                        }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumb ${idx}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

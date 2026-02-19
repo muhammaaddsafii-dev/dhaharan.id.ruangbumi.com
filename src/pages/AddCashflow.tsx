@@ -319,8 +319,7 @@ export default function Cashflow() {
                   <p className="font-fredoka text-xs sm:text-lg md:text-xl font-bold text-accent-foreground truncate">
                     {formatCurrency(filteredIncome)
                       .replace(/\s/g, "")
-                      .replace("Rp", "")
-                      .substring(0, 8)}
+                      .replace("Rp", "")}
                   </p>
                 </div>
                 <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 text-accent-foreground/60 shrink-0" />
@@ -344,8 +343,7 @@ export default function Cashflow() {
                   <p className="font-fredoka text-xs sm:text-lg md:text-xl font-bold text-highlight-foreground truncate">
                     {formatCurrency(filteredExpense)
                       .replace(/\s/g, "")
-                      .replace("Rp", "")
-                      .substring(0, 8)}
+                      .replace("Rp", "")}
                   </p>
                 </div>
                 <TrendingDown className="w-4 h-4 sm:w-6 sm:h-6 text-highlight-foreground/60 shrink-0" />
@@ -372,8 +370,7 @@ export default function Cashflow() {
                   >
                     {formatCurrency(filteredBalance)
                       .replace(/\s/g, "")
-                      .replace("Rp", "")
-                      .substring(0, 8)}
+                      .replace("Rp", "")}
                   </p>
                 </div>
                 <Wallet className="w-4 h-4 sm:w-6 sm:h-6 text-secondary-foreground/60 shrink-0" />
