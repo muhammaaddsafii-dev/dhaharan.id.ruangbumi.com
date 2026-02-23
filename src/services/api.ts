@@ -91,6 +91,18 @@ export const kegiatanAPI = {
     const { data } = await api.post(`/kegiatan/${id}/replace_all_photos/`, {});
     return data;
   },
+
+  // Auto-complete: update status kegiatan yang sudah lewat tanggal menjadi "Selesai" di database
+  autoComplete: async (): Promise<{ updated_count: number; message: string }> => {
+    try {
+      const { data } = await api.post('/kegiatan/auto_complete/');
+      console.log('Auto-complete result:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in kegiatanAPI.autoComplete:', error);
+      return { updated_count: 0, message: 'Failed to auto-complete' };
+    }
+  },
 };
 
 // Foto Kegiatan API

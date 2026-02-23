@@ -106,6 +106,10 @@ export default function Activities() {
   const fetchActivities = async () => {
     try {
       setLoading(true);
+
+      // Auto-update status kegiatan yang sudah lewat tanggal menjadi "Selesai" di database
+      await kegiatanAPI.autoComplete();
+
       const data = await kegiatanAPI.getAll();
 
       // Validate data is array
