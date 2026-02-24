@@ -191,16 +191,16 @@ export default function ResepDetail() {
               <Button
                 variant="secondary"
                 size="icon"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast({
+                    title: "Berhasil",
+                    description: "Tautan berhasil disalin",
+                  });
+                }}
                 className="rounded-full shadow-lg bg-white border-2 border-black"
               >
                 <Share2 className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="rounded-full shadow-lg bg-white border-2 border-black"
-              >
-                <Printer className="w-5 h-5" />
               </Button>
             </div>
           </div>
